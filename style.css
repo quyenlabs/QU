@@ -29,11 +29,37 @@ h1 {
     letter-spacing: -1px; /* Tighter letters = Modern look */
 }
 
-.subtitle {
+/* Date Navigation */
+.date-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.nav-btn {
+    background: transparent;
     color: #666;
+    border: 1px solid #333;
+    padding: 5px 10px;
+    font-size: 1rem;
+    border-radius: 4px;
+}
+
+.nav-btn:hover {
+    background: #333;
+    color: #fff;
+    border-color: #fff;
+}
+
+#current-date-display {
+    color: #888;
     font-size: 0.9rem;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    min-width: 120px; /* Keeps the layout stable when text changes */
+    text-align: center;
 }
 
 .total-display {
