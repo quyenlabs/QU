@@ -44,20 +44,53 @@
             </div>
         </div>
 
+        <div class="action-bar">
+            <button id="toggle-creator-btn" class="text-btn">+ Create New Fuel</button>
+        </div>
+
+        <div id="creator-form" class="creator-panel hidden">
+            <h3>New Fuel Source</h3>
+            
+            <div class="input-group-row">
+                <input type="text" id="new-food-name" placeholder="Name (e.g. Protein Bar)" style="flex: 3;">
+                <input type="number" id="new-serving" placeholder="Serving" style="flex: 1;">
+                <select id="new-unit" style="flex: 1; padding: 15px 5px; text-align: center;">
+                    <option value="g">g</option>
+                    <option value="ml">ml</option>
+                </select>
+            </div>
+            
+            <div class="macro-inputs">
+                <input type="number" id="new-p" placeholder="P (g)">
+                <input type="number" id="new-c" placeholder="C (g)">
+                <input type="number" id="new-f" placeholder="F (g)">
+            </div>
+            
+            <div class="calc-preview">
+                <span>Est. Calories per serving: </span>
+                <span id="calc-calories">0</span>
+            </div>
+
+            <button id="save-food-btn" class="save-btn">SAVE TO LIBRARY</button>
+
+            <div class="library-section">
+                <h4>MY CUSTOM FOODS</h4>
+                <div id="library-list">
+                    </div>
+            </div>
+        </div>
+
         <div class="input-group">
             <select id="entry-name">
                 <option value="" disabled selected>Select Fuel...</option>
-                <option value="Chicken Breast (Raw)">Chicken Breast (Raw)</option>
-                <option value="White Rice (Cooked)">White Rice (Cooked)</option>
-                <option value="Egg Whites">Egg Whites (Liquid)</option>
-            </select>
+                </select>
             
             <input type="number" id="entry-value" placeholder="grams / ml">
             <button id="add-btn">+</button>
         </div>
 
         <div id="feed">
-            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

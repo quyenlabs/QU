@@ -112,6 +112,7 @@ h1 {
 .macro-stat .val {
     font-size: 1.1rem;
     font-weight: 700;
+    text-transform: uppercase; /* <--- Forces 175g to 175G */
 }
 
 /* The Grey Background Line */
@@ -246,3 +247,174 @@ button:hover {
     color: red; /* Turns red when you hover */
     background: transparent;
 }
+
+/* The "Create New" Link */
+.action-bar {
+    text-align: right;
+    margin-bottom: 5px;
+}
+
+.text-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.text-btn:hover { color: #fff; }
+
+/* The Creator Panel */
+.creator-panel {
+    background: #1a1a1a;
+    border: 1px dashed #444;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Utility to hide it */
+.hidden { display: none; }
+
+.creator-panel h3 {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.macro-inputs {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Auto-Calc Text */
+.calc-preview {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #888;
+    text-align: right;
+}
+
+#calc-calories {
+    color: #fff;
+    font-weight: bold;
+}
+
+.save-btn {
+    width: 100%;
+    margin-top: 15px;
+    background: #333;
+    color: #fff;
+}
+
+.save-btn:hover {
+    background: #444;
+}
+
+/* Library Manager Section */
+.library-section {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+}
+
+.library-section h4 {
+    font-size: 0.7rem;
+    color: #666;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.lib-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #222;
+    font-size: 0.9rem;
+}
+
+.lib-name {
+    color: #ccc;
+}
+
+.lib-delete {
+    color: #666;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 5px;
+}
+
+.lib-delete:hover {
+    color: #f87171; /* Red on hover */
+}
+
+/* New row layout for the creator form */
+.input-group-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Ensure inputs in this row behave */
+.input-group-row input {
+    min-width: 0;
+}
+
+/* Card Layout Updates */
+.card-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px; /* Slight spacing between name and stats */
+}
+
+/* Container for the bottom row */
+.card-stats {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* TIGHTER SPACING (Was 10px) */
+    font-size: 0.85rem;
+    color: #888;
+}
+
+/* The Macros Container */
+.macro-group {
+    display: flex;
+    gap: 8px; 
+    
+    /* Remove previous border/spacing */
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+
+    /* The New Vibe */
+    font-style: italic; /* <--- ITALICS */
+}
+
+/* The Colon Trick */
+.macro-group::before {
+    content: ":";       /* Inserts the colon automatically */
+    margin-right: 5px;  /* Space between : and the numbers */
+    color: #444;        /* Subtle Grey */
+    font-style: normal; /* Keep the colon upright (non-italic) */
+    font-weight: 400;
+}
+
+/* Ensure the tags are uppercase and italic */
+.macro-tag {
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    /* Inherits italic from parent */
+}
+
+/* Match the Dashboard Colors */
+.tag-p { color: #4ade80; } /* Green */
+.tag-c { color: #60a5fa; } /* Blue */
+.tag-f { color: #f87171; } /* Red */

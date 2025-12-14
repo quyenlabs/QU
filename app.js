@@ -1,9 +1,12 @@
-// --- FOOD LIBRARY (Per 100g/ml) ---
-// STRICT MODE: Raw/Uncooked weights only for maximum accuracy.
-const foodLibrary = {
-    "Chicken Breast (Raw)":  { cal: 120, p: 23, c: 0, f: 2.5 },
-    "White Rice (Cooked)":   { cal: 130, p: 2.7, c: 28, f: 0.3 }, // Rice is usually weighed cooked for convenience
-    "Egg Whites":            { cal: 52,  p: 11, c: 0.7, f: 0.2 }
+// --- 1. CONFIGURATION ---
+// The immutable "Base" library
+const baseLibrary = {
+    // added 'unit' property to everything
+    "Chicken Breast (Raw)":  { unit: "g", serving: 100, cal: 120, p: 23, c: 0, f: 2.5 },
+    "White Rice (Cooked)":   { unit: "g", serving: 100, cal: 130, p: 2.7, c: 28, f: 0.3 },
+    "Egg Whites":            { unit: "ml", serving: 100, cal: 52,  p: 11, c: 0.7, f: 0.2 }, // <-- ML
+    "Oats (Raw)":            { unit: "g", serving: 100, cal: 389, p: 16.9, c: 66, f: 6.9 },
+    "Olive Oil":             { unit: "ml", serving: 100, cal: 884, p: 0, c: 0, f: 100 }     // <-- ML
 };
 
 // --- USER GOALS ---
@@ -14,40 +17,70 @@ const userGoals = {
     f: 40
 };
 
-// 1. SELECTORS
+// --- 2. SELECTORS ---
 const nameInput = document.getElementById("entry-name");
 const valueInput = document.getElementById("entry-value");
 const addBtn = document.getElementById("add-btn");
 const feed = document.getElementById("feed");
 
-// Dashboard Selectors
+// Dashboard
 const totalCalDisplay = document.getElementById("total-cal");
 const totalPDisplay = document.getElementById("total-p");
 const totalCDisplay = document.getElementById("total-c");
 const totalFDisplay = document.getElementById("total-f");
 
-// Navigation Selectors
+// Date Nav
 const dateDisplay = document.getElementById("current-date-display");
 const prevBtn = document.getElementById("prev-day");
 const nextBtn = document.getElementById("next-day");
 
-// 2. STATE
+// Creator Panel Selectors
+const toggleCreatorBtn = document.getElementById("toggle-creator-btn");
+const creatorPanel = document.getElementById("creator-form");
+const newFoodName = document.getElementById("new-food-name");
+const newServing = document.getElementById("new-serving");
+const newUnit = document.getElementById("new-unit"); // New selector
+const newP = document.getElementById("new-p");
+const newC = document.getElementById("new-c");
+const newF = document.getElementById("new-f");
+const calcCalories = document.getElementById("calc-calories");
+const saveFoodBtn = document.getElementById("save-food-btn");
+
+const libraryList = document.getElementById("library-list");
+
+// --- 3. STATE ---
 let entries = JSON.parse(localStorage.getItem("qu_log")) || [];
+let customFoods = JSON.parse(localStorage.getItem("qu_custom_foods")) || {}; // User's private library
 let currentDate = new Date(); 
 
-// 3. HELPER: Date Strings
+// --- 4. CORE FUNCTIONS ---
+
+// Combine Base + Custom libraries into one master list
+function getFullLibrary() {
+    return { ...baseLibrary, ...customFoods };
+}
+
+// Populate the Dropdown Menu
+function populateDropdown() {
+    const library = getFullLibrary();
+    // Clear existing options (except the first placeholder)
+    nameInput.innerHTML = '<option value="" disabled selected>Select Fuel...</option>';
+    
+    // Sort keys alphabetically so it looks nice
+    const sortedFoods = Object.keys(library).sort();
+    
+    sortedFoods.forEach(foodName => {
+        const option = document.createElement("option");
+        option.value = foodName;
+        option.innerText = foodName;
+        nameInput.appendChild(option);
+    });
+}
+
 function getDayString(dateObj) {
     return dateObj.toLocaleDateString('en-CA');
 }
 
-// 4. HELPER: Update Header
-function updateDateHeader() {
-    const todayString = getDayString(new Date());
-    const currentString = getDayString(currentDate);
-    dateDisplay.innerText = (currentString === todayString) ? "TODAY" : currentDate.toDateString();
-}
-
-// 5. CORE: Calculate and Display Totals
 function updateTotals(todaysEntries) {
     let totals = todaysEntries.reduce((acc, entry) => {
         return {
@@ -58,32 +91,31 @@ function updateTotals(todaysEntries) {
         };
     }, { cal: 0, p: 0, c: 0, f: 0 });
 
-    // Update Text
     totalCalDisplay.innerText = Math.round(totals.cal);
     totalPDisplay.innerText = Math.round(totals.p) + "g";
     totalCDisplay.innerText = Math.round(totals.c) + "g";
     totalFDisplay.innerText = Math.round(totals.f) + "g";
 
-    // Update Progress Bars
     updateProgressBar("bar-p", totals.p, userGoals.p);
     updateProgressBar("bar-c", totals.c, userGoals.c);
     updateProgressBar("bar-f", totals.f, userGoals.f);
 }
 
-// Helper to animate bars
 function updateProgressBar(id, current, goal) {
     const bar = document.getElementById(id);
+    if (!bar) return; // Safety check
     let percentage = (current / goal) * 100;
-    
-    // Cap it at 100% so it doesn't break layout
     if (percentage > 100) percentage = 100;
-    
     bar.style.width = percentage + "%";
 }
 
 function loadEntries() {
     feed.innerHTML = "";
-    updateDateHeader();
+    
+    // Header
+    const todayString = getDayString(new Date());
+    const currentString = getDayString(currentDate);
+    dateDisplay.innerText = (currentString === todayString) ? "TODAY" : currentDate.toDateString();
     
     const activeDayString = getDayString(currentDate);
     const todaysEntries = entries.filter(entry => entry.date === activeDayString);
@@ -92,25 +124,159 @@ function loadEntries() {
         const newItem = document.createElement("div");
         newItem.classList.add("entry-card");
         
-        // Visual Logic: If it has macros, show weight. If not (old data), just show value.
-        // We use 'entry.weight' for new items, 'entry.amount' for old legacy items.
-        const displayValue = entry.weight ? `${entry.weight}g` : entry.amount;
+        let leftContent = "";
+        
+        // CHECK IF IT IS A WORKOUT (Future proofing)
+        // Since we haven't built 'train' logic fully yet, we check if macros exist.
+        if (entry.protein !== undefined) {
+            
+            // FOOD LAYOUT
+            const unitLabel = entry.unit || "g";
+            const displayValue = entry.weight ? `${entry.weight}${unitLabel}` : entry.amount;
+            
+            // Round the numbers for display
+            const p = Math.round(entry.protein);
+            const c = Math.round(entry.carbs);
+            const f = Math.round(entry.fat);
+
+            newItem.style.borderLeft = "3px solid #fff";
+            
+            leftContent = `
+                <span class="entry-text">${entry.item}</span>
+                <div class="card-stats">
+                    <span>${displayValue}</span>
+                    <div class="macro-group">
+                        <span class="macro-tag tag-p">${p}p</span>
+                        <span class="macro-tag tag-c">${c}c</span>
+                        <span class="macro-tag tag-f">${f}f</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            // LEGACY / GENERIC LAYOUT (For old data or non-food)
+            newItem.style.borderLeft = "3px solid #444";
+            leftContent = `
+                <span class="entry-text">${entry.item}</span>
+                <span class="entry-value">${entry.amount || entry.weight}</span>
+            `;
+        }
 
         newItem.innerHTML = `
             <div class="card-left">
-                <span class="entry-text">${entry.item}</span>
-                <span class="entry-value">${displayValue}</span>
+                ${leftContent}
             </div>
             <button class="delete-btn" onclick="deleteEntry(${entry.id})">×</button>
         `;
-        
         feed.prepend(newItem);
     });
 
     updateTotals(todaysEntries);
 }
 
-// 6. EVENT LISTENERS
+// RENDER: Show list of custom foods with delete buttons
+function renderCustomLibrary() {
+    libraryList.innerHTML = "";
+    const names = Object.keys(customFoods).sort();
+
+    if (names.length === 0) {
+        libraryList.innerHTML = '<div style="color:#444; font-size:0.8rem; font-style:italic;">No custom foods yet.</div>';
+        return;
+    }
+
+    names.forEach(name => {
+        const item = document.createElement("div");
+        item.classList.add("lib-item");
+        // We pass the name string to the delete function
+        item.innerHTML = `
+            <span class="lib-name">${name}</span>
+            <button class="lib-delete" onclick="deleteCustomFood('${name}')">×</button>
+        `;
+        libraryList.appendChild(item);
+    });
+}
+
+// DELETE: Remove from custom library
+window.deleteCustomFood = function(name) {
+    if (confirm(`Delete "${name}" from your library?`)) {
+        delete customFoods[name];
+        localStorage.setItem("qu_custom_foods", JSON.stringify(customFoods));
+        
+        // Refresh everything
+        renderCustomLibrary();
+        populateDropdown();
+    }
+}
+
+// --- 5. CREATOR LOGIC (The New Stuff) ---
+
+// Toggle the form visibility
+toggleCreatorBtn.addEventListener("click", () => {
+    creatorPanel.classList.toggle("hidden");
+    // Change button text based on state
+    if (creatorPanel.classList.contains("hidden")) {
+        toggleCreatorBtn.innerText = "+ Create New Fuel";
+    } else {
+        toggleCreatorBtn.innerText = "Close Manager";
+        renderCustomLibrary(); // <--- NEW: Show list when opening
+    }
+});
+
+// Auto-Calculate Calories while typing
+function autoCalc() {
+    const p = Number(newP.value) || 0;
+    const c = Number(newC.value) || 0;
+    const f = Number(newF.value) || 0;
+    
+    // Formula: 4-4-9
+    const estCal = (p * 4) + (c * 4) + (f * 9);
+    calcCalories.innerText = Math.round(estCal);
+}
+
+// Attach listener to all macro inputs
+[newP, newC, newF].forEach(input => input.addEventListener("input", autoCalc));
+
+// Save the New Food
+saveFoodBtn.addEventListener("click", () => {
+    const name = newFoodName.value.trim();
+    // Default to 100 if empty
+    const serving = Number(newServing.value) || 100; 
+    const unit = newUnit.value; // <--- GRAB THE UNIT
+    const p = Number(newP.value);
+    const c = Number(newC.value);
+    const f = Number(newF.value);
+    
+    if (!name || (p===0 && c===0 && f===0)) {
+        alert("Please enter a name and at least one macro.");
+        return;
+    }
+    
+    const cal = (p * 4) + (c * 4) + (f * 9); // Final calc
+    
+    // SAVE UNIT TO DATABASE
+    customFoods[name] = { unit, serving, cal, p, c, f };
+    localStorage.setItem("qu_custom_foods", JSON.stringify(customFoods));
+    
+    // Refresh Dropdown and Hide Form
+    populateDropdown();
+    
+    // Auto-select the new food for convenience
+    nameInput.value = name; 
+    
+    // Clear Form
+    newFoodName.value = "";
+    newServing.value = "";
+    newUnit.value = "g"; // Reset to grams
+    newP.value = ""; newC.value = ""; newF.value = "";
+    calcCalories.innerText = "0";
+    creatorPanel.classList.add("hidden");
+    toggleCreatorBtn.innerText = "+ Create New Fuel";
+    
+    // AFTER saving to localStorage:
+    renderCustomLibrary(); // <--- NEW: Update list immediately
+});
+
+// --- 6. EXISTING LISTENERS ---
+
 window.deleteEntry = function(id) {
     entries = entries.filter(item => item.id !== id);
     localStorage.setItem("qu_log", JSON.stringify(entries));
@@ -120,27 +286,21 @@ window.deleteEntry = function(id) {
 prevBtn.addEventListener("click", () => { currentDate.setDate(currentDate.getDate() - 1); loadEntries(); });
 nextBtn.addEventListener("click", () => { currentDate.setDate(currentDate.getDate() + 1); loadEntries(); });
 
-// EVENT LISTENER: Allow "Enter" key to submit
-valueInput.addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        // Trigger the button click programmatically
-        addBtn.click();
-    }
-});
-
-// THE NEW ADD LOGIC
 addBtn.addEventListener("click", function() {
-    // Validation: Must pick a food AND enter a weight
     if (nameInput.value === "" || valueInput.value === "") return;
 
-    // 1. Get the Food Data
     const foodName = nameInput.value;
     const weight = Number(valueInput.value);
-    const foodStats = foodLibrary[foodName]; // Look up the macros
+    
+    // We look up from the FULL library now
+    const library = getFullLibrary();
+    const foodStats = library[foodName];
 
-    // 2. Calculate Macros for THIS entry
-    // Math: (Weight Entered / 100) * Stat
-    const multiplier = weight / 100;
+    const referenceSize = foodStats.serving || 100;
+    // Fallback to 'g' if unit is missing (for legacy data compatibility)
+    const currentUnit = foodStats.unit || "g"; 
+    
+    const multiplier = weight / referenceSize;
 
     let entry = {
         id: Date.now(),
@@ -148,8 +308,7 @@ addBtn.addEventListener("click", function() {
         timestamp: new Date(),
         item: foodName,
         weight: weight,
-        
-        // Calculated Values
+        unit: currentUnit, // <--- SAVE IT TO THE LOG
         calories: foodStats.cal * multiplier,
         protein: foodStats.p * multiplier,
         carbs: foodStats.c * multiplier,
@@ -159,12 +318,15 @@ addBtn.addEventListener("click", function() {
     entries.push(entry);
     localStorage.setItem("qu_log", JSON.stringify(entries));
     loadEntries(); 
-
-    // Reset Inputs
-    valueInput.value = "";
-    // We keep the dropdown selected in case you want to add more of the same, 
-    // or you can set nameInput.value = "" to reset it.
+    
+    // valueInput.value = ""; // Optional clear
 });
 
-// Initial Load
+// Allow "Enter" key
+valueInput.addEventListener("keypress", function(event) {
+    if (event.key === "Enter") addBtn.click();
+});
+
+// --- INIT ---
+populateDropdown(); // Run this first to fill the list
 loadEntries();
