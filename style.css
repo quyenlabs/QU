@@ -62,6 +62,7 @@ h1 {
     text-align: center;
 }
 
+/* Update Total Display to handle the new layout */
 .total-display {
     background: #222;
     padding: 20px;
@@ -69,26 +70,96 @@ h1 {
     text-align: center;
     margin-bottom: 30px;
     border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-.total-display span {
-    color: #888;
-    font-size: 0.8rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
-
-#total-number {
+#total-cal {
     font-size: 3rem;
     margin-top: 5px;
     color: #fff;
+    line-height: 1;
 }
+
+/* The Macro Row */
+.macro-row {
+    display: flex;
+    justify-content: center;
+    gap: 25px; /* Space between P / C / F */
+    padding-top: 15px;
+    border-top: 1px solid #333;
+}
+
+/* Progress Bar Container */
+.macro-stat {
+    position: relative;
+    width: 80px; /* Fixed width for stability */
+    padding-bottom: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.macro-stat .label {
+    color: #666;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+}
+
+.macro-stat .val {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+/* The Grey Background Line */
+.progress-bg {
+    background: #333;
+    height: 4px;
+    width: 100%;
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+/* The Filling Line */
+.progress-fill {
+    height: 100%;
+    width: 0%; /* JS will change this */
+    transition: width 0.5s ease;
+}
+
+/* Specific Colors for the bars */
+.fill-p { background: #4ade80; }
+.fill-c { background: #60a5fa; }
+.fill-f { background: #f87171; }
+
+/* Macro Colors (Text) */
+#total-p { color: #4ade80; } 
+#total-c { color: #60a5fa; } 
+#total-f { color: #f87171; } 
 
 /* The Input Styling */
 .input-group {
     display: flex;
     gap: 10px;
     margin-bottom: 30px;
+}
+
+/* The Select Dropdown styling */
+select {
+    background: #222;
+    border: none;
+    padding: 15px;
+    color: white;
+    border-radius: 8px;
+    width: 100%; /* Takes up same space as the old text box */
+    outline: none;
+    appearance: none; /* Removes default arrow */
+    cursor: pointer;
+    font-size: 1rem;
 }
 
 input {
@@ -99,6 +170,17 @@ input {
     border-radius: 8px;
     width: 100%;
     outline: none;
+}
+
+/* Remove the up/down arrows from number inputs */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+input[type=number] {
+    -moz-appearance: textfield; /* For Firefox */
 }
 
 /* The Button */

@@ -20,13 +20,39 @@
         </header>
 
         <div class="total-display">
-            <span>TOTAL INPUT</span>
-            <h2 id="total-number">0</h2>
+            <div class="main-total">
+                <span>TOTAL CALORIES</span>
+                <h2 id="total-cal">0</h2>
+            </div>
+            
+            <div class="macro-row">
+                <div class="macro-stat">
+                    <span class="label">PROTEIN</span>
+                    <span id="total-p" class="val">0g</span>
+                    <div class="progress-bg"><div id="bar-p" class="progress-fill fill-p"></div></div>
+                </div>
+                <div class="macro-stat">
+                    <span class="label">CARBS</span>
+                    <span id="total-c" class="val">0g</span>
+                    <div class="progress-bg"><div id="bar-c" class="progress-fill fill-c"></div></div>
+                </div>
+                <div class="macro-stat">
+                    <span class="label">FATS</span>
+                    <span id="total-f" class="val">0g</span>
+                    <div class="progress-bg"><div id="bar-f" class="progress-fill fill-f"></div></div>
+                </div>
+            </div>
         </div>
 
         <div class="input-group">
-            <input type="text" id="entry-name" placeholder="Input (e.g., Steak, Squat)">
-            <input type="number" id="entry-value" placeholder="Value">
+            <select id="entry-name">
+                <option value="" disabled selected>Select Fuel...</option>
+                <option value="Chicken Breast (Raw)">Chicken Breast (Raw)</option>
+                <option value="White Rice (Cooked)">White Rice (Cooked)</option>
+                <option value="Egg Whites">Egg Whites (Liquid)</option>
+            </select>
+            
+            <input type="number" id="entry-value" placeholder="grams / ml">
             <button id="add-btn">+</button>
         </div>
 
