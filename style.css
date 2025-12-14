@@ -1,11 +1,140 @@
-body {
-    font-family: sans-serif;
+/* Reset standard browser spacing */
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: #111; /* Deep Black */
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    padding-top: 50px;
+}
+
+.container {
+    width: 100%;
+    max-width: 400px; /* Mobile width */
     padding: 20px;
-    background-color: #f0f0f0;
+}
+
+header {
+    margin-bottom: 30px;
 }
 
 h1 {
-    color: #333;
+    font-size: 2rem;
+    letter-spacing: -1px; /* Tighter letters = Modern look */
 }
 
+.subtitle {
+    color: #666;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.total-display {
+    background: #222;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 30px;
+    border: 1px solid #333;
+}
+
+.total-display span {
+    color: #888;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+#total-number {
+    font-size: 3rem;
+    margin-top: 5px;
+    color: #fff;
+}
+
+/* The Input Styling */
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+input {
+    background: #222;
+    border: none;
+    padding: 15px;
+    color: white;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+}
+
+/* The Button */
+button {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #ccc; /* Slight dim on hover */
+}
+
+/* Add this to the bottom of style.css */
+
+.entry-card {
+    background: #222;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between; /* Pushes text to left/right edges */
+    align-items: center;
+    border-left: 3px solid #fff; /* A little "QU" accent mark */
+    animation: fadeIn 0.3s ease; /* Smooth entrance */
+}
+
+.entry-text {
+    font-weight: 600;
+}
+
+.entry-value {
+    color: #888;
+}
+
+/* Optional: A simple animation keyframe */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Group text together so it stays on the left */
+.card-left {
+    display: flex;
+    flex-direction: column; /* Stacks name on top of value */
+}
+
+/* The Delete Button */
+.delete-btn {
+    background: transparent;
+    color: #444;
+    font-size: 1.5rem;
+    padding: 0 10px;
+    margin-left: 10px;
+}
+
+.delete-btn:hover {
+    color: red; /* Turns red when you hover */
+    background: transparent;
+}

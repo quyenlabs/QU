@@ -5,11 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QU</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>QU</h1>
-    <div id="app"></div>
+
+    <div class="container">
+        <header>
+            <h1>QU</h1>
+            <p class="subtitle">Input Protocol</p>
+        </header>
+
+        <div class="total-display">
+            <span>TOTAL INPUT</span>
+            <h2 id="total-number">0</h2>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="entry-name" placeholder="Input (e.g., Steak, Squat)">
+            <input type="number" id="entry-value" placeholder="Value">
+            <button id="add-btn">+</button>
+        </div>
+
+        <div id="feed">
+            </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
-
