@@ -368,7 +368,9 @@ addBtn.addEventListener("click", function() {
     localStorage.setItem("qu_log", JSON.stringify(entries));
     loadEntries(); 
     
-    // valueInput.value = ""; // Optional clear
+    // RESET FORM
+    valueInput.value = "";           // Clear the weight
+    nameInput.selectedIndex = 0;     // Reset to "Select Fuel"
 });
 
 // Allow "Enter" key
