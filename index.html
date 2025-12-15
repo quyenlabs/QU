@@ -11,7 +11,15 @@
 
     <div class="container">
         <header>
-            <h1>QU</h1>
+            <div class="header-top">
+                <h1>QU</h1>
+                <div class="mode-switch">
+                    <button id="mode-fuel" class="mode-btn active">FUEL</button>
+                    <span class="divider">/</span>
+                    <button id="mode-train" class="mode-btn">TRAIN</button>
+                </div>
+            </div>
+
             <div class="date-nav">
                 <button id="prev-day" class="nav-btn">←</button>
                 <span id="current-date-display">Today</span>
@@ -19,105 +27,113 @@
             </div>
         </header>
 
-        <div class="total-display">
-            <div class="main-total">
-                <span>TOTAL CALORIES</span>
-                <h2 id="total-cal">0</h2>
-            </div>
-            <button id="edit-goals-btn">EDIT GOALS</button>
-            
-            <div id="goals-form" class="hidden" style="margin-bottom:10px;">
+        <section id="fuel-view">
+            <div class="total-display">
+                <div class="main-total">
+                    <span>TOTAL CALORIES</span>
+                    <h2 id="total-cal">0</h2>
+                </div>
+                <button id="edit-goals-btn">EDIT GOALS</button>
                 
-                <div class="goal-grid">
-                    
-    <div class="goal-column">
-        <span class="goal-label" style="color:#666;">PROTEIN</span>
-        <input type="number" id="goal-p" class="goal-input c-p input-p">
-    </div>
-
-    <div class="goal-column">
-            <span class="goal-label" style="color:#666;">CARBS</span>
-        <input type="number" id="goal-c" class="goal-input c-c input-c">
-    </div>
-
-    <div class="goal-column">
-            <span class="goal-label" style="color:#666;">FATS</span>
-        <input type="number" id="goal-f" class="goal-input c-f input-f">
-    </div>
-
-                </div>
-
-                <button id="save-goals-btn" class="save-btn" style="margin-top:5px;">UPDATE TARGETS</button>
-            </div>
-            
-            <div class="macro-row">
-                <div class="macro-stat">
-                    <span class="label">PROTEIN</span>
-                    <span id="total-p" class="val">0g</span>
-                    <div class="progress-bg"><div id="bar-p" class="progress-fill fill-p"></div></div>
-                </div>
-                <div class="macro-stat">
-                    <span class="label">CARBS</span>
-                    <span id="total-c" class="val">0g</span>
-                    <div class="progress-bg"><div id="bar-c" class="progress-fill fill-c"></div></div>
-                </div>
-                <div class="macro-stat">
-                    <span class="label">FATS</span>
-                    <span id="total-f" class="val">0g</span>
-                    <div class="progress-bg"><div id="bar-f" class="progress-fill fill-f"></div></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="action-bar">
-            <button id="toggle-creator-btn" class="text-btn">+ Create New Fuel</button>
-        </div>
-
-        <div id="creator-form" class="creator-panel hidden">
-            <h3>New Fuel Source</h3>
-            
-            <div class="input-group-row">
-                <input type="text" id="new-food-name" placeholder="Name (e.g. Protein Bar)" style="flex: 3;">
-                <input type="number" id="new-serving" placeholder="Serving" style="flex: 1;">
-                <select id="new-unit" style="flex: 1; padding: 15px 5px; text-align: center;">
-                    <option value="g">g</option>
-                    <option value="ml">ml</option>
-                </select>
-            </div>
-            
-            <div class="macro-inputs">
-                <input type="number" id="new-p" placeholder="P (g)">
-                <input type="number" id="new-c" placeholder="C (g)">
-                <input type="number" id="new-f" placeholder="F (g)">
-            </div>
-            
-            <div class="calc-preview">
-                <span>Est. Calories per serving: </span>
-                <span id="calc-calories">0</span>
-            </div>
-
-            <button id="save-food-btn" class="save-btn">SAVE TO LIBRARY</button>
-
-            <div class="library-section">
-                <h4>MY CUSTOM FOODS</h4>
-                <div id="library-list">
+                <div id="goals-form" class="hidden" style="margin-bottom:10px;">
+                    <div class="goal-grid">
+                        <div class="goal-column">
+                            <span class="goal-label" style="color:#666;">PROTEIN</span>
+                            <input type="number" id="goal-p" class="goal-input c-p input-p">
+                        </div>
+                        <div class="goal-column">
+                                <span class="goal-label" style="color:#666;">CARBS</span>
+                            <input type="number" id="goal-c" class="goal-input c-c input-c">
+                        </div>
+                        <div class="goal-column">
+                                <span class="goal-label" style="color:#666;">FATS</span>
+                            <input type="number" id="goal-f" class="goal-input c-f input-f">
+                        </div>
                     </div>
+                    <button id="save-goals-btn" class="save-btn" style="margin-top:5px;">UPDATE TARGETS</button>
+                </div>
+                
+                <div class="macro-row">
+                    <div class="macro-stat">
+                        <span class="label">PROTEIN</span>
+                        <span id="total-p" class="val">0g</span>
+                        <div class="progress-bg"><div id="bar-p" class="progress-fill fill-p"></div></div>
+                    </div>
+                    <div class="macro-stat">
+                        <span class="label">CARBS</span>
+                        <span id="total-c" class="val">0g</span>
+                        <div class="progress-bg"><div id="bar-c" class="progress-fill fill-c"></div></div>
+                    </div>
+                    <div class="macro-stat">
+                        <span class="label">FATS</span>
+                        <span id="total-f" class="val">0g</span>
+                        <div class="progress-bg"><div id="bar-f" class="progress-fill fill-f"></div></div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="input-group">
-            <select id="entry-name">
-                <option value="" disabled selected>Select Fuel..</option>
+            <div class="action-bar">
+                <button id="toggle-creator-btn" class="text-btn">+ Create New Fuel</button>
+            </div>
+
+            <div id="creator-form" class="creator-panel hidden">
+                <h3>New Fuel Source</h3>
+                <div class="input-group-row">
+                    <input type="text" id="new-food-name" placeholder="Name (e.g. Protein Bar)" style="flex: 3;">
+                    <input type="number" id="new-serving" placeholder="Serving" style="flex: 1;">
+                    <select id="new-unit" style="flex: 1; padding: 15px 5px; text-align: center;">
+                        <option value="g">g</option>
+                        <option value="ml">ml</option>
+                    </select>
+                </div>
+                <div class="macro-inputs">
+                    <input type="number" id="new-p" placeholder="P (g)">
+                    <input type="number" id="new-c" placeholder="C (g)">
+                    <input type="number" id="new-f" placeholder="F (g)">
+                </div>
+                <div class="calc-preview">
+                    <span>Est. Calories per serving: </span>
+                    <span id="calc-calories">0</span>
+                </div>
+                <button id="save-food-btn" class="save-btn">SAVE TO LIBRARY</button>
+                <div class="library-section">
+                    <h4>MY CUSTOM FOODS</h4>
+                    <div id="library-list"></div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <select id="entry-name">
+                    <option value="" disabled selected>Select Fuel</option>
                 </select>
-            
-            <input type="number" id="entry-value" placeholder="grams / ml">
-            <button id="add-btn">+</button>
-        </div>
+                <input type="number" id="entry-value" placeholder="grams / ml">
+                <button id="add-btn">+</button>
+            </div>
 
-        <div id="feed">
-        </div>
+            <div id="feed"></div>
+        </section>
+
+        <section id="train-view" class="hidden">
+            <div id="train-selector">
+                <h3 class="section-title">SELECT PROTOCOL</h3>
+                <div class="split-grid">
+                    <button class="split-btn" onclick="startWorkout('PUSH')">PUSH</button>
+                    <button class="split-btn" onclick="startWorkout('PULL')">PULL</button>
+                    <button class="split-btn" onclick="startWorkout('LEGS')">LEGS</button>
+                    <button class="split-btn" onclick="startWorkout('SHOULDERS')">SHOULDERS</button>
+                </div>
+            </div>
+        
+            <div id="train-active" class="hidden">
+                <div class="workout-header">
+                    <button id="back-to-split" class="nav-btn">← BACK</button>
+                    <h2 id="active-split-name">PUSH</h2>
+                </div>
+                <div id="exercise-list"></div>
+            </div>
+        </section>
+
     </div>
-
     <script src="app.js"></script>
 </body>
 </html>
