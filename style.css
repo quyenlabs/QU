@@ -21,6 +21,18 @@ body {
     padding-bottom: 80px; /* Extra space at bottom */
 }
 
+/* --- NO SPINNERS (The Fix) --- */
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
 /* HEADER & TOGGLE */
 .header-top {
     display: flex;
@@ -103,53 +115,78 @@ header { margin-bottom: 30px; }
 
 /* DASHBOARD & GOALS */
 .total-display {
-    position: relative;
     background: #222;
-    padding: 20px;
+    padding: 30px 20px;
     border-radius: 12px;
     text-align: center;
     margin-bottom: 30px;
     border: 1px solid #333;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    align-items: center; /* Center everything */
+    gap: 10px;
 }
 
-#edit-goals-btn {
-    position: absolute;
-    top: 12px;
-    right: 15px;
-    background: none;
-    border: none;
-    color: #444;
-    font-size: 0.6rem;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 700;
-    transition: 0.2s;
-    z-index: 10;
+.main-total {
+    margin-top: 0;
+    width: 100%;
 }
-#edit-goals-btn:hover { color: #fff; }
+
+.main-total span {
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    color: #888;
+    text-transform: uppercase;
+}
 
 #total-cal {
-    font-size: 3rem;
-    margin-top: 5px;
+    font-size: 3.5rem;
+    margin: 5px 0 0 0;
     color: #fff;
     line-height: 1;
 }
 
 .goal-text {
     color: #555;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 400;
-    margin-left: 8px;
-    vertical-align: 2px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+/* FIX: Button is now static (stacked), borderless, and centered */
+#edit-goals-btn {
+    position: static; /* No longer absolute */
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #555;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    padding: 10px;
+    margin-bottom: 5px;
+    transition: color 0.2s;
+}
+
+#edit-goals-btn:hover {
+    color: #fff;
+    background: transparent;
+}
+
+/* FORM STYLES */
+#goals-form {
+    width: 100%;
+    margin-bottom: 10px;
+    border-top: 1px dashed #333;
+    padding-top: 15px;
 }
 
 .goal-grid {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     margin-bottom: 10px;
 }
 
@@ -172,12 +209,14 @@ header { margin-bottom: 30px; }
     text-align: center;
     background: #151515;
     border: 1px solid #333;
-    padding: 12px;
+    padding: 10px;
     border-radius: 6px;
     font-weight: 700;
     font-size: 1rem;
+    color: #fff;
 }
 
+/* Color Coding Inputs */
 .c-p { color: #4ade80; } 
 .c-c { color: #60a5fa; } 
 .c-f { color: #f87171; } 
@@ -186,7 +225,9 @@ header { margin-bottom: 30px; }
 .input-c:focus { border-color: #60a5fa; outline: none; }
 .input-f:focus { border-color: #f87171; outline: none; }
 
+/* MACRO BARS */
 .macro-row {
+    width: 100%;
     display: flex;
     justify-content: center;
     gap: 15px;
@@ -195,34 +236,31 @@ header { margin-bottom: 30px; }
 }
 
 .macro-stat {
-    position: relative;
-    min-width: 90px;
     flex: 1;
-    padding-bottom: 5px;
     display: flex;
     flex-direction: column;
     align-items: center;
-}
-
-.macro-goal {
-    color: #555;
-    font-size: 0.8rem;
-    font-weight: 400;
-    margin-left: 4px;
 }
 
 .macro-stat .label {
     color: #666;
     font-size: 0.7rem;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     letter-spacing: 1px;
 }
 
 .macro-stat .val {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
     text-transform: uppercase;
+}
+
+.macro-goal {
+    color: #444;
+    font-size: 0.75rem;
+    font-weight: 400;
+    margin-left: 2px;
 }
 
 .progress-bg {
@@ -230,7 +268,7 @@ header { margin-bottom: 30px; }
     height: 4px;
     width: 100%;
     border-radius: 2px;
-    margin-top: 5px;
+    margin-top: 8px;
     overflow: hidden;
 }
 

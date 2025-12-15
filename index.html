@@ -39,15 +39,15 @@
                     <div class="goal-grid">
                         <div class="goal-column">
                             <span class="goal-label" style="color:#666;">PROTEIN</span>
-                            <input type="number" id="goal-p" class="goal-input c-p input-p">
+                            <input type="number" id="goal-p" class="goal-input c-p input-p" min="0">
                         </div>
                         <div class="goal-column">
                                 <span class="goal-label" style="color:#666;">CARBS</span>
-                            <input type="number" id="goal-c" class="goal-input c-c input-c">
+                            <input type="number" id="goal-c" class="goal-input c-c input-c" min="0">
                         </div>
                         <div class="goal-column">
                                 <span class="goal-label" style="color:#666;">FATS</span>
-                            <input type="number" id="goal-f" class="goal-input c-f input-f">
+                            <input type="number" id="goal-f" class="goal-input c-f input-f" min="0">
                         </div>
                     </div>
                     <button id="save-goals-btn" class="save-btn" style="margin-top:5px;">UPDATE TARGETS</button>
@@ -80,16 +80,16 @@
                 <h3>New Fuel Source</h3>
                 <div class="input-group-row">
                     <input type="text" id="new-food-name" placeholder="Name (e.g. Protein Bar)" style="flex: 3;">
-                    <input type="number" id="new-serving" placeholder="Serving" style="flex: 1;">
+                    <input type="number" id="new-serving" placeholder="Serving" style="flex: 1;" min="0">
                     <select id="new-unit" style="flex: 1; padding: 15px 5px; text-align: center;">
                         <option value="g">g</option>
                         <option value="ml">ml</option>
                     </select>
                 </div>
                 <div class="macro-inputs">
-                    <input type="number" id="new-p" placeholder="P (g)">
-                    <input type="number" id="new-c" placeholder="C (g)">
-                    <input type="number" id="new-f" placeholder="F (g)">
+                    <input type="number" id="new-p" placeholder="P (g)" min="0">
+                    <input type="number" id="new-c" placeholder="C (g)" min="0">
+                    <input type="number" id="new-f" placeholder="F (g)" min="0">
                 </div>
                 <div class="calc-preview">
                     <span>Est. Calories per serving: </span>
@@ -106,7 +106,7 @@
                 <select id="entry-name">
                     <option value="" disabled selected>Select Fuel</option>
                 </select>
-                <input type="number" id="entry-value" placeholder="grams / ml">
+                <input type="number" id="entry-value" placeholder="grams / ml" min="0">
                 <button id="add-btn">+</button>
             </div>
 

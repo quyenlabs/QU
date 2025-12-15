@@ -450,7 +450,13 @@ saveFoodBtn.addEventListener("click", () => {
     const p = Number(newP.value);
     const c = Number(newC.value);
     const f = Number(newF.value);
-    if (!name || (p===0 && c===0 && f===0)) { alert("Invalid food"); return; }
+    
+    // VALIDATE NEGATIVES
+    if (!name || p < 0 || c < 0 || f < 0) {
+        alert("Invalid food values.");
+        return;
+    }
+    
     const cal = (p * 4) + (c * 4) + (f * 9); 
     customFoods[name] = { unit, serving, cal, p, c, f };
     localStorage.setItem("qu_custom_foods", JSON.stringify(customFoods));
@@ -472,10 +478,17 @@ editGoalsBtn.addEventListener("click", () => {
     }
 });
 saveGoalsBtn.addEventListener("click", () => {
+    // FIX: Parse as number, but treat empty as 0
     const p = Number(inputGoalP.value);
     const c = Number(inputGoalC.value);
     const f = Number(inputGoalF.value);
-    if (p === 0 || c === 0 || f === 0) return;
+
+    // FIX: Block negatives
+    if (p < 0 || c < 0 || f < 0) {
+        alert("Goals cannot be negative.");
+        return;
+    }
+
     const newCal = (p * 4) + (c * 4) + (f * 9);
     userGoals = { cal: newCal, p, c, f };
     localStorage.setItem("qu_user_goals", JSON.stringify(userGoals));
