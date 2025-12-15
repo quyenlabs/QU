@@ -110,7 +110,7 @@ h1 {
     vertical-align: 2px; /* Slight lift to align visually */
 }
 
-/* 2. THE NEW GOAL COLUMNS (Fixes Alignment) */
+/* THE MISSING LAYOUT RULES */
 .goal-grid {
     display: flex;
     gap: 15px;
@@ -124,7 +124,7 @@ h1 {
     align-items: center; /* Centers Label over Input */
 }
 
-/* 3. COLORED LABELS */
+/* 2. LABELS (Neutral) */
 .goal-label {
     font-size: 0.65rem;
     font-weight: 700;
@@ -283,18 +283,18 @@ button:hover {
     background: #ccc; /* Slight dim on hover */
 }
 
-/* Add this to the bottom of style.css */
-
+/* --- 1. TIGHTER CARDS --- */
 .entry-card {
     background: #222;
-    padding: 15px;
-    margin-bottom: 10px;
+    padding: 8px 12px;  /* <--- Reduced padding (Was 10px 15px) */
+    margin-bottom: 6px; /* <--- Reduced margin (Was 8px) */
     border-radius: 8px;
     display: flex;
-    justify-content: space-between; /* Pushes text to left/right edges */
+    justify-content: space-between;
     align-items: center;
-    border-left: 3px solid #fff; /* A little "QU" accent mark */
-    animation: fadeIn 0.3s ease; /* Smooth entrance */
+    border-left: 3px solid #fff;
+    animation: fadeIn 0.3s ease;
+    min-height: 45px;   /* <--- Slimmer height */
 }
 
 .entry-text {
@@ -311,11 +311,11 @@ button:hover {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Group text together so it stays on the left */
+/* Tighten the text inside the card */
 .card-left {
     display: flex;
     flex-direction: column;
-    gap: 2px; /* Slight spacing between name and stats */
+    gap: 0; /* <--- REMOVED GAP (Was 2px) for tighter stacking */
 }
 
 /* The Delete Button */
@@ -527,4 +527,25 @@ html, body {
     .delete-btn {
         padding: 10px 15px; 
     }
+}
+
+/* --- 2. MAKE DROPDOWN OBVIOUS --- */
+/* Target the specific unit selector in the creator form */
+#new-unit {
+    background-color: #333; /* Lighter than the input boxes */
+    border: 1px solid #555; /* Visible border */
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    /* Add a custom white arrow */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px;
+    padding-right: 25px; /* Make room for the arrow text doesn't overlap */
+}
+
+#new-unit:hover {
+    background-color: #444; /* Hover effect */
+    border-color: #888;
 }
