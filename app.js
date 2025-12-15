@@ -10,11 +10,12 @@ const baseLibrary = {
 };
 
 // --- USER GOALS ---
-const userGoals = {
-    cal: 2460, // Calculated from your macros
-    p: 175,
-    c: 350,
-    f: 40
+// Try to load from local storage, OR default to the "Base" template
+let userGoals = JSON.parse(localStorage.getItem("qu_user_goals")) || { 
+    cal: 2460, 
+    p: 175, 
+    c: 350, 
+    f: 40 
 };
 
 // --- 2. SELECTORS ---
@@ -48,6 +49,14 @@ const saveFoodBtn = document.getElementById("save-food-btn");
 
 const libraryList = document.getElementById("library-list");
 
+// Edit Goals Selectors
+const editGoalsBtn = document.getElementById("edit-goals-btn");
+const goalsForm = document.getElementById("goals-form");
+const saveGoalsBtn = document.getElementById("save-goals-btn");
+const inputGoalP = document.getElementById("goal-p");
+const inputGoalC = document.getElementById("goal-c");
+const inputGoalF = document.getElementById("goal-f");
+
 // --- 3. STATE ---
 let entries = JSON.parse(localStorage.getItem("qu_log")) || [];
 let customFoods = JSON.parse(localStorage.getItem("qu_custom_foods")) || {}; // User's private library
@@ -64,7 +73,7 @@ function getFullLibrary() {
 function populateDropdown() {
     const library = getFullLibrary();
     // Clear existing options (except the first placeholder)
-    nameInput.innerHTML = '<option value="" disabled selected>Select Fuel...</option>';
+    nameInput.innerHTML = '<option value="" disabled selected>Select Fuel</option>';
     
     // Sort keys alphabetically so it looks nice
     const sortedFoods = Object.keys(library).sort();
@@ -91,11 +100,15 @@ function updateTotals(todaysEntries) {
         };
     }, { cal: 0, p: 0, c: 0, f: 0 });
 
-    totalCalDisplay.innerText = Math.round(totals.cal);
-    totalPDisplay.innerText = Math.round(totals.p) + "g";
-    totalCDisplay.innerText = Math.round(totals.c) + "g";
-    totalFDisplay.innerText = Math.round(totals.f) + "g";
+    // CALORIES (You already have this)
+    totalCalDisplay.innerHTML = `${Math.round(totals.cal)} <span class="goal-text">/ ${userGoals.cal}</span>`;
 
+    // --- MACROS: Add the goals here ---
+    totalPDisplay.innerHTML = `${Math.round(totals.p)}g <span class="macro-goal">/ ${userGoals.p}g</span>`;
+    totalCDisplay.innerHTML = `${Math.round(totals.c)}g <span class="macro-goal">/ ${userGoals.c}g</span>`;
+    totalFDisplay.innerHTML = `${Math.round(totals.f)}g <span class="macro-goal">/ ${userGoals.f}g</span>`;
+
+    // (Keep the progress bar updates below...)
     updateProgressBar("bar-p", totals.p, userGoals.p);
     updateProgressBar("bar-c", totals.c, userGoals.c);
     updateProgressBar("bar-f", totals.f, userGoals.f);
@@ -273,6 +286,42 @@ saveFoodBtn.addEventListener("click", () => {
     
     // AFTER saving to localStorage:
     renderCustomLibrary(); // <--- NEW: Update list immediately
+});
+
+// Toggle the Goals Form
+editGoalsBtn.addEventListener("click", () => {
+    goalsForm.classList.toggle("hidden");
+    // Pre-fill current goals so user sees what they are editing
+    if (!goalsForm.classList.contains("hidden")) {
+        inputGoalP.value = userGoals.p;
+        inputGoalC.value = userGoals.c;
+        inputGoalF.value = userGoals.f;
+    }
+});
+
+// Save New Goals
+saveGoalsBtn.addEventListener("click", () => {
+    const p = Number(inputGoalP.value);
+    const c = Number(inputGoalC.value);
+    const f = Number(inputGoalF.value);
+
+    if (p === 0 || c === 0 || f === 0) {
+        alert("Please enter valid macro targets.");
+        return;
+    }
+
+    // Auto-calculate total calories based on new macros
+    const newCal = (p * 4) + (c * 4) + (f * 9);
+
+    // Update State
+    userGoals = { cal: newCal, p, c, f };
+    
+    // Save to Browser
+    localStorage.setItem("qu_user_goals", JSON.stringify(userGoals));
+
+    // Refresh Dashboard
+    goalsForm.classList.add("hidden");
+    loadEntries(); // This triggers updateTotals() which redraws the bars
 });
 
 // --- 6. EXISTING LISTENERS ---

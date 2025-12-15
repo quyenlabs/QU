@@ -24,6 +24,31 @@
                 <span>TOTAL CALORIES</span>
                 <h2 id="total-cal">0</h2>
             </div>
+            <button id="edit-goals-btn">EDIT GOALS</button>
+            
+            <div id="goals-form" class="hidden" style="margin-bottom:10px;">
+                
+                <div class="goal-grid">
+                    
+                    <div class="goal-column">
+                        <span class="goal-label" style="color:#666;">PROTEIN</span>
+                        <input type="number" id="goal-p" class="goal-input c-p input-p" placeholder="175">
+                    </div>
+
+                    <div class="goal-column">
+                         <span class="goal-label" style="color:#666;">CARBS</span>
+                        <input type="number" id="goal-c" class="goal-input c-c input-c" placeholder="350">
+                    </div>
+
+                    <div class="goal-column">
+                         <span class="goal-label" style="color:#666;">FATS</span>
+                        <input type="number" id="goal-f" class="goal-input c-f input-f" placeholder="40">
+                    </div>
+
+                </div>
+
+                <button id="save-goals-btn" class="save-btn" style="margin-top:5px;">UPDATE TARGETS</button>
+            </div>
             
             <div class="macro-row">
                 <div class="macro-stat">
@@ -82,7 +107,7 @@
 
         <div class="input-group">
             <select id="entry-name">
-                <option value="" disabled selected>Select Fuel...</option>
+                <option value="" disabled selected>Select Fuel..</option>
                 </select>
             
             <input type="number" id="entry-value" placeholder="grams / ml">

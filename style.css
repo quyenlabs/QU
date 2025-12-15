@@ -64,6 +64,7 @@ h1 {
 
 /* Update Total Display to handle the new layout */
 .total-display {
+    position: relative; /* <--- IMPORTANT */
     background: #222;
     padding: 20px;
     border-radius: 12px;
@@ -75,6 +76,24 @@ h1 {
     gap: 15px;
 }
 
+/* 1. EDIT BUTTON: Pinned to the very corner */
+#edit-goals-btn {
+    position: absolute;
+    top: 12px;          /* <--- Closer to the top edge */
+    right: 15px;        /* <--- Closer to the right edge */
+    background: none;
+    border: none;
+    color: #444;        /* Darker grey to be subtle */
+    font-size: 0.6rem;  /* <--- SMALLER TEXT */
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    transition: 0.2s;
+    z-index: 10;        /* Ensures it sits on top of everything */
+}
+#edit-goals-btn:hover { color: #fff; }
+
 #total-cal {
     font-size: 3rem;
     margin-top: 5px;
@@ -82,11 +101,65 @@ h1 {
     line-height: 1;
 }
 
+/* Style for the "/ 2500" text */
+.goal-text {
+    color: #555;        /* Darker grey, very subtle */
+    font-size: 1.5rem;  /* Half the size of the main number */
+    font-weight: 400;   /* Thinner font weight */
+    margin-left: 8px;   /* Small gap */
+    vertical-align: 2px; /* Slight lift to align visually */
+}
+
+/* 2. THE NEW GOAL COLUMNS (Fixes Alignment) */
+.goal-grid {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.goal-column {
+    flex: 1; /* Each column takes equal space */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers Label over Input */
+}
+
+/* 3. COLORED LABELS */
+.goal-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+    /* Color is handled inline or inherited as grey now */
+}
+
+/* 4. COLORED INPUTS */
+.goal-input {
+    width: 100%;
+    text-align: center;
+    background: #151515; /* Slightly darker input bg */
+    border: 1px solid #333;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* COLOR CLASSES (Apply to both Label and Input text) */
+.c-p { color: #4ade80; } /* Green */
+.c-c { color: #60a5fa; } /* Blue */
+.c-f { color: #f87171; } /* Red */
+
+/* Active Focus Borders */
+.input-p:focus { border-color: #4ade80; outline: none; }
+.input-c:focus { border-color: #60a5fa; outline: none; }
+.input-f:focus { border-color: #f87171; outline: none; }
+
 /* The Macro Row */
 .macro-row {
     display: flex;
-    justify-content: center;
-    gap: 25px; /* Space between P / C / F */
+    justify-content: center; /* or space-between */
+    gap: 15px; /* <--- REDUCED GAP (Was 25px) to make room for text */
     padding-top: 15px;
     border-top: 1px solid #333;
 }
@@ -94,11 +167,21 @@ h1 {
 /* Progress Bar Container */
 .macro-stat {
     position: relative;
-    width: 80px; /* Fixed width for stability */
+    /* width: 80px;  <--- DELETE THIS FIXED WIDTH */
+    min-width: 90px; /* <--- New minimum to ensure bar looks good */
+    flex: 1;         /* <--- Allow them to grow if needed */
     padding-bottom: 5px;
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+/* New Style for the Macro Goal Text (smaller/grey) */
+.macro-goal {
+    color: #555;
+    font-size: 0.8rem; /* Smaller than the main number */
+    font-weight: 400;
+    margin-left: 4px;
 }
 
 .macro-stat .label {
@@ -231,7 +314,8 @@ button:hover {
 /* Group text together so it stays on the left */
 .card-left {
     display: flex;
-    flex-direction: column; /* Stacks name on top of value */
+    flex-direction: column;
+    gap: 2px; /* Slight spacing between name and stats */
 }
 
 /* The Delete Button */
@@ -366,42 +450,41 @@ button:hover {
     min-width: 0;
 }
 
-/* Card Layout Updates */
-.card-left {
-    display: flex;
-    flex-direction: column;
-    gap: 2px; /* Slight spacing between name and stats */
-}
-
 /* Container for the bottom row */
 .card-stats {
     display: flex;
     align-items: center;
-    gap: 5px; /* TIGHTER SPACING (Was 10px) */
+    gap: 0; /* Remove gap so we can control spacing manually */
     font-size: 0.85rem;
     color: #888;
+}
+
+/* THE FIX: Force the Weight/Unit to act like a fixed column */
+/* This targets the first span (the weight) inside .card-stats */
+.card-stats > span:first-child {
+    display: inline-block;
+    width: 55px;       /* Reserve exactly 55px of space */
+    text-align: right; /* Align text to the right (next to the colon) */
+    margin-right: 8px; /* Consistent gap between unit and colon */
 }
 
 /* The Macros Container */
 .macro-group {
     display: flex;
     gap: 8px; 
-    
+    font-style: italic;
     /* Remove previous border/spacing */
     margin-left: 0;
     padding-left: 0;
     border-left: none;
-
-    /* The New Vibe */
-    font-style: italic; /* <--- ITALICS */
 }
 
-/* The Colon Trick */
+/* The Colon Trick - Tighter Spacing */
 .macro-group::before {
-    content: ":";       /* Inserts the colon automatically */
-    margin-right: 5px;  /* Space between : and the numbers */
-    color: #444;        /* Subtle Grey */
-    font-style: normal; /* Keep the colon upright (non-italic) */
+    content: ":";       
+    margin-right: 6px;  /* Reduced space after colon */
+    color: #444;       
+    font-style: normal; 
     font-weight: 400;
 }
 
@@ -418,3 +501,30 @@ button:hover {
 .tag-p { color: #4ade80; } /* Green */
 .tag-c { color: #60a5fa; } /* Blue */
 .tag-f { color: #f87171; } /* Red */
+
+/* --- MOBILE OPTIMIZATION --- */
+
+/* 1. Prevent the page from wiggling left/right */
+html, body {
+    overflow-x: hidden;
+    /* Ensure touches feel instant (removes tap delay) */
+    touch-action: manipulation; 
+}
+
+/* 2. Add breathing room at the bottom for scrolling past the "Home Bar" */
+.container {
+    padding-bottom: 80px; /* Extra space at the bottom */
+}
+
+/* 3. iPHONE ZOOM FIX */
+/* This prevents iOS from zooming in when you tap an input */
+@media screen and (max-width: 768px) {
+    input, select, button {
+        font-size: 16px !important; /* Forces readable size prevents zoom */
+    }
+    
+    /* Make the Delete buttons easier to tap with a thumb */
+    .delete-btn {
+        padding: 10px 15px; 
+    }
+}
