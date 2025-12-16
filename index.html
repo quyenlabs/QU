@@ -53,8 +53,12 @@
             <div class="total-display">
                 <div class="main-total">
                     <span>TOTAL CALORIES</span>
-                    <h2 id="total-cal">0</h2>
+                    <div style="display: flex; justify-content: center; align-items: baseline; gap: 8px;">
+                        <h2 id="total-cal" style="margin:0;">0</h2>
+                        <span id="goal-cal-display" style="color: #666; font-size: 1.2rem; font-weight: 600;">/ 2500</span>
+                    </div>
                 </div>
+                
                 <button id="edit-goals-btn">EDIT GOALS</button>
                 
                 <div id="goals-form" class="hidden" style="margin-bottom:10px;">
@@ -78,17 +82,26 @@
                 <div class="macro-row">
                     <div class="macro-stat">
                         <span class="label">PROTEIN</span>
-                        <span id="total-p" class="val">0g</span>
+                        <div style="display:flex; align-items: baseline; gap: 4px;">
+                            <span id="total-p" class="val">0g</span>
+                            <span id="goal-p-display" class="macro-goal">/ 175g</span>
+                        </div>
                         <div class="progress-bg"><div id="bar-p" class="progress-fill fill-p"></div></div>
                     </div>
                     <div class="macro-stat">
                         <span class="label">CARBS</span>
-                        <span id="total-c" class="val">0g</span>
+                        <div style="display:flex; align-items: baseline; gap: 4px;">
+                            <span id="total-c" class="val">0g</span>
+                            <span id="goal-c-display" class="macro-goal">/ 350g</span>
+                        </div>
                         <div class="progress-bg"><div id="bar-c" class="progress-fill fill-c"></div></div>
                     </div>
                     <div class="macro-stat">
                         <span class="label">FATS</span>
-                        <span id="total-f" class="val">0g</span>
+                        <div style="display:flex; align-items: baseline; gap: 4px;">
+                            <span id="total-f" class="val">0g</span>
+                            <span id="goal-f-display" class="macro-goal">/ 60g</span>
+                        </div>
                         <div class="progress-bg"><div id="bar-f" class="progress-fill fill-f"></div></div>
                     </div>
                 </div>
@@ -106,6 +119,7 @@
                     <select id="new-unit" style="flex: 1; padding: 15px 5px; text-align: center;">
                         <option value="g">g</option>
                         <option value="ml">ml</option>
+                        <option value="qty">qty</option>
                     </select>
                 </div>
                 <div class="macro-inputs">
@@ -128,7 +142,7 @@
                 <select id="entry-name">
                     <option value="" disabled selected>Select Fuel</option>
                 </select>
-                <input type="number" id="entry-value" placeholder="grams / ml" min="0">
+                <input type="number" id="entry-value" placeholder="Amount" min="0">
                 <button id="add-btn">+</button>
             </div>
 

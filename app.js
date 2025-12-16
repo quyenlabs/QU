@@ -56,6 +56,14 @@ const logWeightBtn = document.getElementById("log-weight-btn");
 const weightFeed = document.getElementById("weight-feed");
 const currentWeightDisplay = document.getElementById("current-weight-display");
 
+// Goals Elements
+const editGoalsBtn = document.getElementById("edit-goals-btn");
+const goalsForm = document.getElementById("goals-form");
+const saveGoalsBtn = document.getElementById("save-goals-btn");
+const goalPInput = document.getElementById("goal-p");
+const goalCInput = document.getElementById("goal-c");
+const goalFInput = document.getElementById("goal-f");
+
 
 // --- 3. AUTHENTICATION & INIT ---
 
@@ -141,6 +149,17 @@ function updateGreeting() {
 async function loadData() {
     const dayStr = currentDate.toISOString().split('T')[0];
 
+    // 1. Load Goals
+    const { data: goals } = await supabase.from('user_goals').select('*').eq('user_id', currentUser.id).single();
+    if (goals) {
+        userGoals = { 
+            cal: goals.target_calories, 
+            p: goals.target_p, 
+            c: goals.target_c, 
+            f: goals.target_f 
+        };
+    }
+
     // A. Load Food Library
     const { data: foods } = await supabase.from('custom_foods').select('*');
     if (foods) customFoods = foods;
@@ -154,7 +173,7 @@ async function loadData() {
     const { data: train } = await supabase.from('training_logs').select('*').eq('date', dayStr);
     if (train) trainingLog = train;
     
-    // D. NEW: Load Body Logs (Last 30 entries)
+    // D. Load Body Logs
     const { data: body } = await supabase
         .from('body_logs')
         .select('*')
@@ -198,6 +217,19 @@ function populateDropdown() {
         nameInput.appendChild(option);
     });
 }
+
+// --- SMART LABEL LOGIC ---
+document.getElementById("entry-name").addEventListener("change", function() {
+    const foodName = this.value;
+    const library = getFullLibrary();
+    const food = library[foodName];
+    
+    if (food) {
+        const input = document.getElementById("entry-value");
+        // If unit is 'qty', ask for 'Quantity', otherwise 'grams' or 'ml'
+        input.placeholder = food.unit === 'qty' ? "Quantity (1, 2...)" : `Amount (${food.unit})`;
+    }
+});
 
 // Add Fuel
 document.getElementById("add-btn").addEventListener("click", async function() {
@@ -276,10 +308,27 @@ function renderFuelFeed() {
         feed.prepend(newItem);
     });
 
+    // 1. Update Consumed (The Big Numbers)
     document.getElementById("total-cal").innerText = Math.round(totals.cal);
     document.getElementById("total-p").innerText = Math.round(totals.p) + "g";
     document.getElementById("total-c").innerText = Math.round(totals.c) + "g";
     document.getElementById("total-f").innerText = Math.round(totals.f) + "g";
+
+    // 2. NEW: Update Targets (The "/ 2500" Numbers)
+    // This gives you the visual feedback you were missing
+    document.getElementById("goal-cal-display").innerText = "/ " + userGoals.cal;
+    document.getElementById("goal-p-display").innerText = "/ " + userGoals.p + "g";
+    document.getElementById("goal-c-display").innerText = "/ " + userGoals.c + "g";
+    document.getElementById("goal-f-display").innerText = "/ " + userGoals.f + "g";
+
+    // 3. Update Progress Bars
+    const pctP = Math.min((totals.p / userGoals.p) * 100, 100);
+    const pctC = Math.min((totals.c / userGoals.c) * 100, 100);
+    const pctF = Math.min((totals.f / userGoals.f) * 100, 100);
+
+    document.getElementById("bar-p").style.width = `${pctP}%`;
+    document.getElementById("bar-c").style.width = `${pctC}%`;
+    document.getElementById("bar-f").style.width = `${pctF}%`;
 }
 
 // Create Custom Food (Admin)
@@ -549,6 +598,46 @@ window.deleteBodyLog = async function(id) {
         if (error) loadData(); // Revert on error
     }
 }
+
+// --- 9. GOALS LOGIC ---
+
+// Toggle Edit Form
+editGoalsBtn.addEventListener("click", () => {
+    goalsForm.classList.toggle("hidden");
+    if (!goalsForm.classList.contains("hidden")) {
+        // Pre-fill inputs with current values
+        goalPInput.value = userGoals.p;
+        goalCInput.value = userGoals.c;
+        goalFInput.value = userGoals.f;
+    }
+});
+
+// Save Goals
+saveGoalsBtn.addEventListener("click", async () => {
+    const p = Number(goalPInput.value);
+    const c = Number(goalCInput.value);
+    const f = Number(goalFInput.value);
+    const cal = Math.round((p * 4) + (c * 4) + (f * 9));
+
+    // Update Local State
+    userGoals = { cal, p, c, f };
+
+    // Update UI immediately
+    goalsForm.classList.add("hidden");
+    renderFuelFeed(); // Re-render bars
+
+    // Save to Supabase (Upsert handles Insert or Update)
+    const { error } = await supabase.from('user_goals').upsert({
+        user_id: currentUser.id,
+        target_calories: cal,
+        target_p: p,
+        target_c: c,
+        target_f: f,
+        updated_at: new Date()
+    });
+
+    if (error) console.error("Error saving goals:", error);
+});
 
 // START
 initApp();
