@@ -15,6 +15,7 @@ let trainingLog = [];     // Workout Logs
 let completedSessions = []; // Session Locks
 let customFoods = [];     // The Cloud Library
 let userGoals = { cal: 2460, p: 175, c: 350, f: 40 }; // Default/Local for now
+let bodyLogs = []; // State for weight
 
 const WORKOUT_SPLITS = {
     "LEGS": ["Machine Seated Leg Extension", "Hip Thrust (Bar/Machine)", "Seated Leg Press", "Machine Seated Single Leg Curl", "DB Rear Foot Elevated Split Squat"],
@@ -47,6 +48,14 @@ const trainActive = document.getElementById("train-active");
 const activeSplitName = document.getElementById("active-split-name");
 const exerciseList = document.getElementById("exercise-list");
 const backToSplitBtn = document.getElementById("back-to-split");
+// Body View Elements
+const modeBodyBtn = document.getElementById("mode-body");
+const bodyView = document.getElementById("body-view");
+const weightInput = document.getElementById("weight-input");
+const logWeightBtn = document.getElementById("log-weight-btn");
+const weightFeed = document.getElementById("weight-feed");
+const currentWeightDisplay = document.getElementById("current-weight-display");
+
 
 // --- 3. AUTHENTICATION & INIT ---
 
@@ -81,6 +90,14 @@ loginBtn.addEventListener("click", async () => {
         authOverlay.classList.add("hidden");
         await loadProfile();
         await loadData();
+    }
+});
+
+// --- LOGOUT LOGIC ---
+document.getElementById("logout-btn").addEventListener("click", async () => {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+        window.location.reload(); // Reloads page -> shows Auth Overlay
     }
 });
 
@@ -124,26 +141,30 @@ function updateGreeting() {
 async function loadData() {
     const dayStr = currentDate.toISOString().split('T')[0];
 
-    // A. Load Global Food Library
+    // A. Load Food Library
     const { data: foods } = await supabase.from('custom_foods').select('*');
     if (foods) customFoods = foods;
     populateDropdown(); 
 
     // B. Load Fuel Logs
-    const { data: fuel } = await supabase
-        .from('fuel_logs')
-        .select('*')
-        .eq('date', dayStr);
+    const { data: fuel } = await supabase.from('fuel_logs').select('*').eq('date', dayStr);
     if (fuel) entries = fuel;
 
     // C. Load Training Logs
-    const { data: train } = await supabase
-        .from('training_logs')
-        .select('*')
-        .eq('date', dayStr);
+    const { data: train } = await supabase.from('training_logs').select('*').eq('date', dayStr);
     if (train) trainingLog = train;
     
-    // Refresh UI
+    // D. NEW: Load Body Logs (Last 30 entries)
+    const { data: body } = await supabase
+        .from('body_logs')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(30);
+    if (body) {
+        bodyLogs = body;
+        renderBodyFeed();
+    }
+    
     updateView();
     renderFuelFeed();
 }
@@ -151,27 +172,19 @@ async function loadData() {
 // --- 5. CORE LOGIC: FUEL ---
 
 function getFullLibrary() {
-    const formattedCustom = {};
+    // Now ALL foods come from the Cloud (customFoods)
+    const library = {};
     customFoods.forEach(f => {
-        formattedCustom[f.name] = {
+        library[f.name] = {
             unit: f.unit,
-            serving: f.serving_size,
+            serving: f.serving_size, // Map DB column to App property
             cal: f.calories,
             p: f.protein,
             c: f.carbs,
             f: f.fat
         };
     });
-    
-    const baseLibrary = {
-        "Chicken Breast (Raw)":  { unit: "g", serving: 100, cal: 120, p: 23, c: 0, f: 2.5 },
-        "White Rice (Cooked)":   { unit: "g", serving: 100, cal: 130, p: 2.7, c: 28, f: 0.3 },
-        "Egg Whites":            { unit: "ml", serving: 100, cal: 52,  p: 11, c: 0.7, f: 0.2 },
-        "Oats (Raw)":            { unit: "g", serving: 100, cal: 389, p: 16.9, c: 66, f: 6.9 },
-        "Olive Oil":             { unit: "ml", serving: 100, cal: 884, p: 0, c: 0, f: 100 }
-    };
-
-    return { ...baseLibrary, ...formattedCustom };
+    return library;
 }
 
 function populateDropdown() {
@@ -421,14 +434,18 @@ function updateView() {
 modeFuelBtn.addEventListener("click", () => { 
     fuelView.classList.remove("hidden"); 
     trainView.classList.add("hidden");
+    bodyView.classList.add("hidden"); // Add this
     modeFuelBtn.classList.add("active");
     modeTrainBtn.classList.remove("active");
+    modeBodyBtn.classList.remove("active"); // Add this
 });
 modeTrainBtn.addEventListener("click", () => { 
     fuelView.classList.add("hidden"); 
     trainView.classList.remove("hidden");
+    bodyView.classList.add("hidden"); // Add this
     modeFuelBtn.classList.remove("active");
     modeTrainBtn.classList.add("active");
+    modeBodyBtn.classList.remove("active"); // Add this
 });
 
 // Nav Listeners
@@ -440,6 +457,98 @@ nextBtn.addEventListener("click", () => {
     currentDate.setDate(currentDate.getDate() + 1);
     loadData();
 });
+
+// --- 8. CORE LOGIC: BODY ---
+
+// Mode Switching
+modeBodyBtn.addEventListener("click", () => {
+    fuelView.classList.add("hidden");
+    trainView.classList.add("hidden");
+    bodyView.classList.remove("hidden");
+    
+    modeFuelBtn.classList.remove("active");
+    modeTrainBtn.classList.remove("active");
+    modeBodyBtn.classList.add("active");
+});
+
+// Update existing listeners to also hide bodyView
+modeFuelBtn.addEventListener("click", () => { 
+    fuelView.classList.remove("hidden"); 
+    trainView.classList.add("hidden");
+    bodyView.classList.add("hidden"); // Add this
+    modeFuelBtn.classList.add("active");
+    modeTrainBtn.classList.remove("active");
+    modeBodyBtn.classList.remove("active"); // Add this
+});
+
+modeTrainBtn.addEventListener("click", () => { 
+    fuelView.classList.add("hidden"); 
+    trainView.classList.remove("hidden");
+    bodyView.classList.add("hidden"); // Add this
+    modeFuelBtn.classList.remove("active");
+    modeTrainBtn.classList.add("active");
+    modeBodyBtn.classList.remove("active"); // Add this
+});
+
+// Log Weight
+logWeightBtn.addEventListener("click", async () => {
+    const weight = weightInput.value;
+    if (!weight) return;
+
+    const newLog = {
+        user_id: currentUser.id,
+        date: currentDate.toISOString().split('T')[0],
+        metric_type: 'weight',
+        value: weight,
+        unit: 'lbs'
+    };
+
+    // Optimistic UI
+    bodyLogs.unshift(newLog); // Add to top of list
+    renderBodyFeed();
+    weightInput.value = "";
+
+    const { error } = await supabase.from('body_logs').insert([newLog]);
+    if (error) console.error(error);
+    else loadData(); // Reload to sync IDs
+});
+
+function renderBodyFeed() {
+    weightFeed.innerHTML = "";
+    
+    // Update Big Display (Latest weight)
+    if (bodyLogs.length > 0) {
+        currentWeightDisplay.innerText = bodyLogs[0].value + " lbs";
+    } else {
+        currentWeightDisplay.innerText = "--";
+    }
+
+    // Render List
+    bodyLogs.forEach(log => {
+        const item = document.createElement("div");
+        item.classList.add("weight-card");
+        item.innerHTML = `
+            <span class="weight-date">${log.date}</span>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <span class="weight-val">${log.value} lbs</span>
+                <button class="delete-btn" onclick="deleteBodyLog('${log.id}')" style="font-size:1.2rem;">×</button>
+            </div>
+        `;
+        weightFeed.appendChild(item);
+    });
+}
+
+window.deleteBodyLog = async function(id) {
+    if (!id) return;
+    if(confirm("Delete this weigh-in?")) {
+        // Optimistic remove
+        bodyLogs = bodyLogs.filter(l => l.id !== id);
+        renderBodyFeed();
+        
+        const { error } = await supabase.from('body_logs').delete().eq('id', id);
+        if (error) loadData(); // Revert on error
+    }
+}
 
 // START
 initApp();

@@ -27,12 +27,18 @@
             <div class="header-top">
                 <div>
                     <h1>QU</h1>
-                    <div id="user-greeting" style="font-size: 0.7rem; color: #666; letter-spacing: 1px; text-transform: uppercase; margin-top: -5px; margin-bottom: 5px;"></div>
+                    <div id="user-greeting" class="greeting-text"></div>
                 </div>
-                <div class="mode-switch">
-                    <button id="mode-fuel" class="mode-btn active">FUEL</button>
-                    <span class="divider">/</span>
-                    <button id="mode-train" class="mode-btn">TRAIN</button>
+
+                <div class="header-controls">
+                    <button id="logout-btn" class="logout-link">(LOGOUT)</button>
+                    <div class="mode-switch">
+                        <button id="mode-fuel" class="mode-btn active">FUEL</button>
+                        <span class="divider">/</span>
+                        <button id="mode-train" class="mode-btn">TRAIN</button>
+                        <span class="divider">/</span>
+                        <button id="mode-body" class="mode-btn">BODY</button>
+                    </div>
                 </div>
             </div>
 
@@ -147,6 +153,23 @@
                 </div>
                 <div id="exercise-list"></div>
             </div>
+        </section>
+
+        <!-- Place this AFTER your existing #train-view section -->
+        <section id="body-view" class="hidden">
+            <div class="total-display">
+                <div class="main-total">
+                    <span>LATEST WEIGH-IN</span>
+                    <h2 id="current-weight-display">--</h2>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <input type="number" id="weight-input" placeholder="Enter Weight (lbs)" style="text-align: center;">
+                <button id="log-weight-btn">+</button>
+            </div>
+
+            <div id="weight-feed"></div>
         </section>
 
     </div>
