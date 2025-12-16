@@ -1,137 +1,181 @@
-// --- 1. CONFIGURATION ---
-const baseLibrary = {
-    "Chicken Breast (Raw)":  { unit: "g", serving: 100, cal: 120, p: 23, c: 0, f: 2.5 },
-    "White Rice (Cooked)":   { unit: "g", serving: 100, cal: 130, p: 2.7, c: 28, f: 0.3 },
-    "Egg Whites":            { unit: "ml", serving: 100, cal: 52,  p: 11, c: 0.7, f: 0.2 },
-    "Oats (Raw)":            { unit: "g", serving: 100, cal: 389, p: 16.9, c: 66, f: 6.9 },
-    "Olive Oil":             { unit: "ml", serving: 100, cal: 884, p: 0, c: 0, f: 100 }
-};
+// --- 0. SUPABASE CONFIG ---
+const SUPABASE_URL = 'https://vmmtbbeftdyijuwzhvvv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtbXRiYmVmdGR5aWp1d3podnZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDU2MjEsImV4cCI6MjA4MTQyMTYyMX0.0FMniamkalbJm6LZXmUGZW5J9wcjIyfdnbDjvtnkoC8';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ADMIN CONFIG
+const ADMIN_EMAIL = "quyenducngo@gmail.com"; 
+
+// --- 1. STATE & CONSTANTS ---
+let currentUser = null;
+let userProfile = null;
+let currentDate = new Date();
+let entries = [];         // Fuel Logs
+let trainingLog = [];     // Workout Logs
+let completedSessions = []; // Session Locks
+let customFoods = [];     // The Cloud Library
+let userGoals = { cal: 2460, p: 175, c: 350, f: 40 }; // Default/Local for now
 
 const WORKOUT_SPLITS = {
-    "LEGS": [
-        "Machine Seated Leg Extension",
-        "Hip Thrust (Bar/Machine)",
-        "Seated Leg Press",
-        "Machine Seated Single Leg Curl",
-        "DB Rear Foot Elevated Split Squat"
-    ],
-    "PULL": [
-        "Machine Seated Reverse Fly",
-        "Cable Pullover (Standing)",
-        "Close Grip Pulldown",
-        "High to Low Cable Row",
-        "Barbell Bent Over Row",
-        "Cable Seated Wide Grip Row",
-        "Cable Bicep Curl"
-    ],
-    "PUSH": [
-        "Cable Standing Low to High Fly",
-        "Machine Seated Chest Fly",
-        "DB Incline Bench Press",
-        "DB Incline Closegrip Press",
-        "DB Press",
-        "DB Lateral Raise",
-        "DB Shoulder Press",
-        "Cable Straight Bar Tricep Pushdown"
-    ],
-    "SHOULDERS": [
-        "Machine Seated Reverse Fly",
-        "DB Lateral Raise",
-        "Face Pull",
-        "DB Seated Shoulder Press",
-        "Single Arm Cable Front Raise"
-    ]
+    "LEGS": ["Machine Seated Leg Extension", "Hip Thrust (Bar/Machine)", "Seated Leg Press", "Machine Seated Single Leg Curl", "DB Rear Foot Elevated Split Squat"],
+    "PULL": ["Machine Seated Reverse Fly", "Cable Pullover (Standing)", "Close Grip Pulldown", "High to Low Cable Row", "Barbell Bent Over Row", "Cable Seated Wide Grip Row", "Cable Bicep Curl"],
+    "PUSH": ["Cable Standing Low to High Fly", "Machine Seated Chest Fly", "DB Incline Bench Press", "DB Incline Closegrip Press", "DB Press", "DB Lateral Raise", "DB Shoulder Press", "Cable Straight Bar Tricep Pushdown"],
+    "SHOULDERS": ["Machine Seated Reverse Fly", "DB Lateral Raise", "Face Pull", "DB Seated Shoulder Press", "Single Arm Cable Front Raise"]
 };
 
-let userGoals = JSON.parse(localStorage.getItem("qu_user_goals")) || { 
-    cal: 2460, p: 175, c: 350, f: 40 
-};
+// --- 2. DOM ELEMENTS ---
+// Auth
+const authOverlay = document.getElementById("auth-overlay");
+const emailInput = document.getElementById("email-input");
+const passInput = document.getElementById("password-input");
+const loginBtn = document.getElementById("login-btn");
+const msgDisplay = document.getElementById("auth-msg");
 
-// --- 2. SELECTORS ---
-
-// Mode Switching
+// App
 const modeFuelBtn = document.getElementById("mode-fuel");
 const modeTrainBtn = document.getElementById("mode-train");
 const fuelView = document.getElementById("fuel-view");
 const trainView = document.getElementById("train-view");
-
-// Common
 const dateDisplay = document.getElementById("current-date-display");
 const prevBtn = document.getElementById("prev-day");
 const nextBtn = document.getElementById("next-day");
-
-// FUEL Selectors
-const nameInput = document.getElementById("entry-name");
-const valueInput = document.getElementById("entry-value");
-const addBtn = document.getElementById("add-btn");
 const feed = document.getElementById("feed");
-const totalCalDisplay = document.getElementById("total-cal");
-const totalPDisplay = document.getElementById("total-p");
-const totalCDisplay = document.getElementById("total-c");
-const totalFDisplay = document.getElementById("total-f");
-
-const toggleCreatorBtn = document.getElementById("toggle-creator-btn");
 const creatorPanel = document.getElementById("creator-form");
-const newFoodName = document.getElementById("new-food-name");
-const newServing = document.getElementById("new-serving");
-const newUnit = document.getElementById("new-unit");
-const newP = document.getElementById("new-p");
-const newC = document.getElementById("new-c");
-const newF = document.getElementById("new-f");
-const calcCalories = document.getElementById("calc-calories");
-const saveFoodBtn = document.getElementById("save-food-btn");
-const libraryList = document.getElementById("library-list");
-const editGoalsBtn = document.getElementById("edit-goals-btn");
-const goalsForm = document.getElementById("goals-form");
-const saveGoalsBtn = document.getElementById("save-goals-btn");
-const inputGoalP = document.getElementById("goal-p");
-const inputGoalC = document.getElementById("goal-c");
-const inputGoalF = document.getElementById("goal-f");
-
-// TRAIN SELECTORS
+const toggleCreatorBtn = document.getElementById("toggle-creator-btn");
 const trainSelector = document.getElementById("train-selector");
 const trainActive = document.getElementById("train-active");
 const activeSplitName = document.getElementById("active-split-name");
 const exerciseList = document.getElementById("exercise-list");
 const backToSplitBtn = document.getElementById("back-to-split");
 
+// --- 3. AUTHENTICATION & INIT ---
 
-// --- 3. STATE ---
-let currentMode = localStorage.getItem("qu_mode") || "FUEL"; 
-let entries = JSON.parse(localStorage.getItem("qu_log")) || [];
-let trainingLog = JSON.parse(localStorage.getItem("qu_training_log")) || []; 
-let customFoods = JSON.parse(localStorage.getItem("qu_custom_foods")) || {};
-let completedSessions = JSON.parse(localStorage.getItem("qu_sessions")) || []; 
-let currentDate = new Date(); 
-
-
-// --- 4. VIEW LOGIC ---
-function updateView() {
-    if (currentMode === "FUEL") {
-        fuelView.classList.remove("hidden");
-        trainView.classList.add("hidden");
-        modeFuelBtn.classList.add("active");
-        modeTrainBtn.classList.remove("active");
+async function initApp() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        currentUser = session.user;
+        authOverlay.classList.add("hidden");
+        console.log("Logged in as:", currentUser.email);
+        await loadProfile();
+        await loadData();
     } else {
-        fuelView.classList.add("hidden");
-        trainView.classList.remove("hidden");
-        modeFuelBtn.classList.remove("active");
-        modeTrainBtn.classList.add("active");
+        authOverlay.classList.remove("hidden");
     }
-    const todayString = getDayString(new Date());
-    const currentString = getDayString(currentDate);
-    dateDisplay.innerText = (currentString === todayString) ? "TODAY" : currentDate.toDateString();
 }
 
-modeFuelBtn.addEventListener("click", () => { currentMode = "FUEL"; localStorage.setItem("qu_mode", "FUEL"); updateView(); });
-modeTrainBtn.addEventListener("click", () => { currentMode = "TRAIN"; localStorage.setItem("qu_mode", "TRAIN"); updateView(); });
+// Login Handler
+loginBtn.addEventListener("click", async () => {
+    const email = emailInput.value;
+    const password = passInput.value;
+    msgDisplay.innerText = "Authenticating...";
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
 
+    if (error) {
+        msgDisplay.innerText = error.message;
+    } else {
+        currentUser = data.user;
+        authOverlay.classList.add("hidden");
+        await loadProfile();
+        await loadData();
+    }
+});
 
-// --- 5. CORE FUNCTIONS ---
+async function loadProfile() {
+    let { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+    
+    if (data) {
+        userProfile = data;
+        // FIX: If display_name is null, fallback to email nickname
+        if (!userProfile.display_name) {
+            userProfile.display_name = currentUser.email.split('@')[0];
+        }
+        updateGreeting();
+    } else {
+        // Fallback for new users if DB trigger failed
+        userProfile = { display_name: currentUser.email.split('@')[0] };
+        updateGreeting();
+    }
+}
 
-function getFullLibrary() { return { ...baseLibrary, ...customFoods }; }
+function updateGreeting() {
+    const greetingEl = document.getElementById("user-greeting");
+    if (greetingEl && userProfile) {
+        greetingEl.innerText = `Welcome, ${userProfile.display_name}`;
+    }
+    
+    // ADMIN CHECK: Hide Creator Button if not you
+    if (currentUser.email !== ADMIN_EMAIL) {
+        toggleCreatorBtn.classList.add("hidden");
+    } else {
+        toggleCreatorBtn.classList.remove("hidden");
+    }
+}
+
+// --- 4. DATA SYNC ---
+
+async function loadData() {
+    const dayStr = currentDate.toISOString().split('T')[0];
+
+    // A. Load Global Food Library
+    const { data: foods } = await supabase.from('custom_foods').select('*');
+    if (foods) customFoods = foods;
+    populateDropdown(); 
+
+    // B. Load Fuel Logs
+    const { data: fuel } = await supabase
+        .from('fuel_logs')
+        .select('*')
+        .eq('date', dayStr);
+    if (fuel) entries = fuel;
+
+    // C. Load Training Logs
+    const { data: train } = await supabase
+        .from('training_logs')
+        .select('*')
+        .eq('date', dayStr);
+    if (train) trainingLog = train;
+    
+    // Refresh UI
+    updateView();
+    renderFuelFeed();
+}
+
+// --- 5. CORE LOGIC: FUEL ---
+
+function getFullLibrary() {
+    const formattedCustom = {};
+    customFoods.forEach(f => {
+        formattedCustom[f.name] = {
+            unit: f.unit,
+            serving: f.serving_size,
+            cal: f.calories,
+            p: f.protein,
+            c: f.carbs,
+            f: f.fat
+        };
+    });
+    
+    const baseLibrary = {
+        "Chicken Breast (Raw)":  { unit: "g", serving: 100, cal: 120, p: 23, c: 0, f: 2.5 },
+        "White Rice (Cooked)":   { unit: "g", serving: 100, cal: 130, p: 2.7, c: 28, f: 0.3 },
+        "Egg Whites":            { unit: "ml", serving: 100, cal: 52,  p: 11, c: 0.7, f: 0.2 },
+        "Oats (Raw)":            { unit: "g", serving: 100, cal: 389, p: 16.9, c: 66, f: 6.9 },
+        "Olive Oil":             { unit: "ml", serving: 100, cal: 884, p: 0, c: 0, f: 100 }
+    };
+
+    return { ...baseLibrary, ...formattedCustom };
+}
 
 function populateDropdown() {
+    const nameInput = document.getElementById("entry-name");
     const library = getFullLibrary();
     nameInput.innerHTML = '<option value="" disabled selected>Select Fuel</option>';
     Object.keys(library).sort().forEach(foodName => {
@@ -142,80 +186,128 @@ function populateDropdown() {
     });
 }
 
-function getDayString(dateObj) {
-    return dateObj.toLocaleDateString('en-CA');
-}
-
-// --- FUEL RENDER ---
-function updateTotals(todaysEntries) {
-    let totals = todaysEntries.reduce((acc, entry) => {
-        return {
-            cal: acc.cal + (entry.calories || 0),
-            p: acc.p + (entry.protein || 0),
-            c: acc.c + (entry.carbs || 0),
-            f: acc.f + (entry.fat || 0)
-        };
-    }, { cal: 0, p: 0, c: 0, f: 0 });
-
-    totalCalDisplay.innerHTML = `${Math.round(totals.cal)} <span class="goal-text">/ ${userGoals.cal}</span>`;
-    totalPDisplay.innerHTML = `${Math.round(totals.p)}g <span class="macro-goal">/ ${userGoals.p}g</span>`;
-    totalCDisplay.innerHTML = `${Math.round(totals.c)}g <span class="macro-goal">/ ${userGoals.c}g</span>`;
-    totalFDisplay.innerHTML = `${Math.round(totals.f)}g <span class="macro-goal">/ ${userGoals.f}g</span>`;
-
-    updateProgressBar("bar-p", totals.p, userGoals.p);
-    updateProgressBar("bar-c", totals.c, userGoals.c);
-    updateProgressBar("bar-f", totals.f, userGoals.f);
-}
-
-function updateProgressBar(id, current, goal) {
-    const bar = document.getElementById(id);
-    if (!bar) return; 
-    let percentage = (current / goal) * 100;
-    if (percentage > 100) percentage = 100;
-    bar.style.width = percentage + "%";
-}
-
-function loadEntries() {
-    // 1. Load Food
-    feed.innerHTML = "";
-    const activeDayString = getDayString(currentDate);
+// Add Fuel
+document.getElementById("add-btn").addEventListener("click", async function() {
+    const nameInput = document.getElementById("entry-name");
+    const valueInput = document.getElementById("entry-value");
     
-    // Filter Food
-    const todaysFood = entries.filter(entry => entry.date === activeDayString);
-    todaysFood.forEach(entry => {
+    if (nameInput.value === "" || valueInput.value === "") return;
+    
+    const foodName = nameInput.value;
+    const weight = Number(valueInput.value);
+    
+    const fullLib = getFullLibrary(); 
+    const foodStats = fullLib[foodName];
+    if (!foodStats) { alert("Error finding food stats"); return; }
+    
+    const referenceSize = foodStats.serving_size || foodStats.serving || 100;
+    const multiplier = weight / referenceSize;
+
+    const newEntry = {
+        user_id: currentUser.id,
+        date: currentDate.toISOString().split('T')[0],
+        item_name: foodName,
+        weight: weight,
+        unit: foodStats.unit || 'g',
+        calories: (foodStats.cal || foodStats.calories) * multiplier,
+        protein: (foodStats.p || foodStats.protein) * multiplier,
+        carbs: (foodStats.c || foodStats.carbs) * multiplier,
+        fat: (foodStats.f || foodStats.fat) * multiplier
+    };
+
+    // Optimistic UI
+    entries.push(newEntry);
+    renderFuelFeed();
+    
+    const { error } = await supabase.from('fuel_logs').insert([newEntry]);
+    if (error) console.error("Save failed:", error);
+    else loadData(); // Reload to get real ID
+});
+
+// Delete Fuel
+window.deleteEntry = async function(id) {
+    if (!id) return;
+    const { error } = await supabase.from('fuel_logs').delete().eq('id', id);
+    if (!error) {
+        await loadData();
+    }
+};
+
+// Render Feed
+function renderFuelFeed() {
+    feed.innerHTML = "";
+    let totals = { cal:0, p:0, c:0, f:0 };
+
+    entries.forEach(entry => {
+        totals.cal += entry.calories;
+        totals.p += entry.protein;
+        totals.c += entry.carbs;
+        totals.f += entry.fat;
+
         const newItem = document.createElement("div");
         newItem.classList.add("entry-card");
-        
-        const unitLabel = entry.unit || "g";
-        const displayValue = entry.weight ? `${entry.weight}${unitLabel}` : entry.amount;
-        const p = Math.round(entry.protein);
-        const c = Math.round(entry.carbs);
-        const f = Math.round(entry.fat);
-
-        newItem.style.borderLeft = "3px solid #fff";
-        
         newItem.innerHTML = `
             <div class="card-left">
-                <span class="entry-text">${entry.item}</span>
+                <span class="entry-text">${entry.item_name}</span>
                 <div class="card-stats">
-                    <span>${displayValue}</span>
+                    <span>${entry.weight}${entry.unit}</span>
                     <div class="macro-group">
-                        <span class="macro-tag tag-p">${p}p</span>
-                        <span class="macro-tag tag-c">${c}c</span>
-                        <span class="macro-tag tag-f">${f}f</span>
+                        <span class="macro-tag tag-p">${Math.round(entry.protein)}p</span>
+                        <span class="macro-tag tag-c">${Math.round(entry.carbs)}c</span>
+                        <span class="macro-tag tag-f">${Math.round(entry.fat)}f</span>
                     </div>
                 </div>
             </div>
-            <button class="delete-btn" onclick="deleteEntry(${entry.id})">×</button>
+            <button class="delete-btn" onclick="deleteEntry('${entry.id}')">×</button>
         `;
         feed.prepend(newItem);
     });
-    updateTotals(todaysFood);
+
+    document.getElementById("total-cal").innerText = Math.round(totals.cal);
+    document.getElementById("total-p").innerText = Math.round(totals.p) + "g";
+    document.getElementById("total-c").innerText = Math.round(totals.c) + "g";
+    document.getElementById("total-f").innerText = Math.round(totals.f) + "g";
 }
 
-// --- TRAIN VIEW LOGIC ---
+// Create Custom Food (Admin)
+document.getElementById("save-food-btn").addEventListener("click", async () => {
+    const name = document.getElementById("new-food-name").value;
+    const p = Number(document.getElementById("new-p").value);
+    const c = Number(document.getElementById("new-c").value);
+    const f = Number(document.getElementById("new-f").value);
+    const cal = (p*4) + (c*4) + (f*9);
 
-// 1. Start the Workout
+    const newFood = {
+        user_id: currentUser.id,
+        name: name,
+        unit: document.getElementById("new-unit").value,
+        serving_size: Number(document.getElementById("new-serving").value),
+        calories: cal,
+        protein: p,
+        carbs: c,
+        fat: f
+    };
+
+    const { error } = await supabase.from('custom_foods').insert([newFood]);
+    
+    if (!error) {
+        alert("Food Saved to Global DB");
+        creatorPanel.classList.add("hidden");
+        loadData();
+    } else {
+        alert("Error: " + error.message);
+    }
+});
+
+// Creator Panel Toggle
+toggleCreatorBtn.addEventListener("click", () => {
+    creatorPanel.classList.toggle("hidden");
+    toggleCreatorBtn.innerText = creatorPanel.classList.contains("hidden") ? "+ Create New Fuel" : "Close Manager";
+    // We can add renderCustomLibrary() logic here later if we want to list them
+});
+
+// --- 6. CORE LOGIC: TRAIN ---
+
 window.startWorkout = function(splitName) {
     trainSelector.classList.add("hidden");
     trainActive.classList.remove("hidden");
@@ -223,299 +315,131 @@ window.startWorkout = function(splitName) {
     renderWorkoutPage(splitName);
 }
 
-// 2. Go Back (Standard Navigation)
 backToSplitBtn.addEventListener("click", () => {
     trainActive.classList.add("hidden");
     trainSelector.classList.remove("hidden");
-    updateSplitStatus(); 
 });
 
-// 3. Render the Exercise Cards (Fixed Logic)
 function renderWorkoutPage(splitName) {
     exerciseList.innerHTML = "";
     const exercises = WORKOUT_SPLITS[splitName];
-    const activeDate = getDayString(currentDate);
-
-    // CHECK LOCKED STATUS
-    const isLocked = completedSessions.some(s => 
-        s.date === activeDate && s.split === splitName
-    );
+    // Simple lock check (can be enhanced with DB 'sessions' table later)
+    const isLocked = false; 
 
     exercises.forEach(exerciseName => {
-        // A. GET HISTORY
-        const history = trainingLog.filter(t => t.exercise === exerciseName).pop();
-        let historyText = "no history"; 
+        // Find logs for today
+        const todaysLogs = trainingLog.filter(t => t.exercise === exerciseName);
         
-        if (history) {
-            historyText = `last: ${history.weight}lbs × ${history.reps}`;
-        }
-
-        // B. GET TODAY'S LOGS
-        const todaysLogs = trainingLog.filter(t => 
-            t.date === activeDate && 
-            t.exercise === exerciseName
-        );
-
-        // 1. Generate the History HTML
         let logsHtml = "";
         todaysLogs.forEach(log => {
-            const deleteVisibility = isLocked ? 'hidden-visibility' : '';
             logsHtml += `
                 <div class="mini-log">
                     <span>${log.weight}lbs × ${log.reps}</span> 
-                    <button class="mini-delete ${deleteVisibility}" onclick="deleteSet(${log.id}, '${splitName}')">×</button>
+                    <button class="mini-delete" onclick="deleteSet('${log.id}', '${splitName}')">×</button>
                 </div>`;
         });
 
-        // 2. Determine Button State (Plus vs Checkmark)
-        let actionButtonHtml = '';
-        if (isLocked) {
-            actionButtonHtml = `<button class="log-set-btn locked-indicator">✓</button>`;
-        } else {
-            actionButtonHtml = `<button class="log-set-btn" onclick="logSet('${exerciseName}', '${splitName}')">+</button>`;
-        }
-
-        // 3. Determine Input State
-        const disabledAttr = isLocked ? 'disabled' : '';
-
-        // C. CREATE CARD HTML
         const card = document.createElement("div");
         card.classList.add("exercise-card");
-
         card.innerHTML = `
             <div class="ex-header">
-                <div>
-                    <span class="ex-name">${exerciseName}</span>
-                    <span class="ex-history">${historyText}</span>
-                </div>
+                <div><span class="ex-name">${exerciseName}</span></div>
             </div>
-            
             <div class="today-logs">${logsHtml}</div>
-
             <div class="set-input-row">
-                <input type="number" placeholder="lbs" id="weight-${cleanId(exerciseName)}" style="flex:1" ${disabledAttr}>
-                <input type="number" placeholder="reps" id="reps-${cleanId(exerciseName)}" style="flex:1" ${disabledAttr}>
-                ${actionButtonHtml}
+                <input type="number" placeholder="lbs" id="weight-${cleanId(exerciseName)}" style="flex:1">
+                <input type="number" placeholder="reps" id="reps-${cleanId(exerciseName)}" style="flex:1">
+                <button class="log-set-btn" onclick="logSet('${exerciseName}', '${splitName}')">+</button>
             </div>
         `;
-        
         exerciseList.appendChild(card);
     });
 
-    // D. RENDER BOTTOM BUTTON
-    if (isLocked) {
-        const unlockBtn = document.createElement("button");
-        unlockBtn.id = "unlock-workout-btn";
-        unlockBtn.innerText = "Unlock / Edit Session";
-        unlockBtn.onclick = function() {
-            completedSessions = completedSessions.filter(s => 
-                !(s.date === activeDate && s.split === splitName)
-            );
-            localStorage.setItem("qu_sessions", JSON.stringify(completedSessions));
-            renderWorkoutPage(splitName);
-            updateSplitStatus(); 
-        };
-        exerciseList.appendChild(unlockBtn);
-    } else {
-        const finishBtn = document.createElement("button");
-        finishBtn.id = "finish-workout-btn";
-        finishBtn.innerText = "Complete Session";
-        finishBtn.onclick = function() {
-            if (!confirm("Finish session? This will lock your logs.")) return;
-            const sessionEntry = { date: activeDate, split: splitName };
-            const alreadySaved = completedSessions.some(s => 
-                s.date === sessionEntry.date && s.split === sessionEntry.split
-            );
-            if (!alreadySaved) {
-                completedSessions.push(sessionEntry);
-                localStorage.setItem("qu_sessions", JSON.stringify(completedSessions));
-            }
-            trainActive.classList.add("hidden");
-            trainSelector.classList.remove("hidden");
-            updateSplitStatus(); 
-        };
-        exerciseList.appendChild(finishBtn);
-    }
+    const finishBtn = document.createElement("button");
+    finishBtn.id = "finish-workout-btn";
+    finishBtn.innerText = "Complete Session";
+    finishBtn.onclick = function() {
+        trainActive.classList.add("hidden");
+        trainSelector.classList.remove("hidden");
+        alert("Good work.");
+    };
+    exerciseList.appendChild(finishBtn);
 }
 
 function cleanId(str) { return str.replace(/[^a-zA-Z0-9]/g, ''); }
 
-window.logSet = function(exerciseName, splitName) {
+window.logSet = async function(exerciseName, splitName) {
     const weightInput = document.getElementById(`weight-${cleanId(exerciseName)}`);
     const repsInput = document.getElementById(`reps-${cleanId(exerciseName)}`);
     
-    const weight = weightInput.value;
-    const reps = repsInput.value;
-
-    if (!weight || !reps) return;
+    if (!weightInput.value || !repsInput.value) return;
 
     const newSet = {
-        id: Date.now(),
-        date: getDayString(currentDate),
+        user_id: currentUser.id,
+        date: currentDate.toISOString().split('T')[0],
         exercise: exerciseName,
-        weight: weight,
-        reps: reps
+        weight: weightInput.value,
+        reps: repsInput.value
     };
 
-    trainingLog.push(newSet);
-    localStorage.setItem("qu_training_log", JSON.stringify(trainingLog));
-    renderWorkoutPage(splitName);
-}
-
-window.deleteSet = function(id, splitName) {
-    if(confirm("Delete this set?")) {
-        trainingLog = trainingLog.filter(item => item.id !== id);
-        localStorage.setItem("qu_training_log", JSON.stringify(trainingLog));
+    // Save to DB
+    const { error } = await supabase.from('training_logs').insert([newSet]);
+    
+    if (!error) {
+        await loadData(); // Reload to sync
         renderWorkoutPage(splitName);
     }
 }
 
-function updateSplitStatus() {
-    const buttons = document.querySelectorAll(".split-btn");
-    const activeDate = getDayString(currentDate);
-
-    buttons.forEach(btn => {
-        const splitName = btn.innerText.replace("✓", "").trim(); 
-        const isFinished = completedSessions.some(s => 
-            s.date === activeDate && s.split === splitName
-        );
-        if (isFinished) {
-            btn.classList.add("completed");
-        } else {
-            btn.classList.remove("completed");
+window.deleteSet = async function(id, splitName) {
+    if(confirm("Delete this set?")) {
+        const { error } = await supabase.from('training_logs').delete().eq('id', id);
+        if (!error) {
+            await loadData();
+            renderWorkoutPage(splitName);
         }
-    });
+    }
 }
 
-// --- 6. EVENT LISTENERS ---
-addBtn.addEventListener("click", function() {
-    if (nameInput.value === "" || valueInput.value === "") return;
-    const foodName = nameInput.value;
-    const weight = Number(valueInput.value);
-    const library = getFullLibrary();
-    const foodStats = library[foodName];
-    const referenceSize = foodStats.serving || 100;
-    const currentUnit = foodStats.unit || "g"; 
-    const multiplier = weight / referenceSize;
+// --- 7. UTILS & NAVIGATION ---
 
-    let entry = {
-        id: Date.now(),
-        date: getDayString(currentDate),
-        item: foodName,
-        weight: weight,
-        unit: currentUnit, 
-        calories: foodStats.cal * multiplier,
-        protein: foodStats.p * multiplier,
-        carbs: foodStats.c * multiplier,
-        fat: foodStats.f * multiplier
+function updateView() {
+    const isToday = currentDate.toDateString() === new Date().toDateString();
+    dateDisplay.innerText = isToday ? "TODAY" : currentDate.toISOString().split('T')[0];
+    
+    // Auto-calc for creator panel
+    const calc = () => {
+        const p = Number(document.getElementById("new-p").value) || 0;
+        const c = Number(document.getElementById("new-c").value) || 0;
+        const f = Number(document.getElementById("new-f").value) || 0;
+        document.getElementById("calc-calories").innerText = Math.round((p*4)+(c*4)+(f*9));
     };
-
-    entries.push(entry);
-    localStorage.setItem("qu_log", JSON.stringify(entries));
-    loadEntries(); 
-    valueInput.value = "";           
-    nameInput.selectedIndex = 0;     
-});
-
-window.deleteEntry = function(id) {
-    entries = entries.filter(item => item.id !== id);
-    localStorage.setItem("qu_log", JSON.stringify(entries));
-    loadEntries();
+    ["new-p","new-c","new-f"].forEach(id => document.getElementById(id).addEventListener("input", calc));
 }
 
-prevBtn.addEventListener("click", () => { currentDate.setDate(currentDate.getDate() - 1); updateView(); loadEntries(); updateSplitStatus(); });
-nextBtn.addEventListener("click", () => { currentDate.setDate(currentDate.getDate() + 1); updateView(); loadEntries(); updateSplitStatus(); });
-
-toggleCreatorBtn.addEventListener("click", () => {
-    creatorPanel.classList.toggle("hidden");
-    if (creatorPanel.classList.contains("hidden")) {
-        toggleCreatorBtn.innerText = "+ Create New Fuel";
-    } else {
-        toggleCreatorBtn.innerText = "Close Manager";
-        renderCustomLibrary(); 
-    }
+// Mode Switching
+modeFuelBtn.addEventListener("click", () => { 
+    fuelView.classList.remove("hidden"); 
+    trainView.classList.add("hidden");
+    modeFuelBtn.classList.add("active");
+    modeTrainBtn.classList.remove("active");
 });
-[newP, newC, newF].forEach(input => input.addEventListener("input", autoCalc));
-function autoCalc() {
-    const p = Number(newP.value) || 0;
-    const c = Number(newC.value) || 0;
-    const f = Number(newF.value) || 0;
-    const estCal = (p * 4) + (c * 4) + (f * 9);
-    calcCalories.innerText = Math.round(estCal);
-}
-saveFoodBtn.addEventListener("click", () => {
-    const name = newFoodName.value.trim();
-    const serving = Number(newServing.value) || 100; 
-    const unit = newUnit.value; 
-    const p = Number(newP.value);
-    const c = Number(newC.value);
-    const f = Number(newF.value);
-    
-    // VALIDATE NEGATIVES
-    if (!name || p < 0 || c < 0 || f < 0) {
-        alert("Invalid food values.");
-        return;
-    }
-    
-    const cal = (p * 4) + (c * 4) + (f * 9); 
-    customFoods[name] = { unit, serving, cal, p, c, f };
-    localStorage.setItem("qu_custom_foods", JSON.stringify(customFoods));
-    populateDropdown();
-    nameInput.value = name; 
-    newFoodName.value = ""; newServing.value = ""; newUnit.value = "g";
-    newP.value = ""; newC.value = ""; newF.value = "";
-    calcCalories.innerText = "0";
-    creatorPanel.classList.add("hidden");
-    toggleCreatorBtn.innerText = "+ Create New Fuel";
-    renderCustomLibrary(); 
+modeTrainBtn.addEventListener("click", () => { 
+    fuelView.classList.add("hidden"); 
+    trainView.classList.remove("hidden");
+    modeFuelBtn.classList.remove("active");
+    modeTrainBtn.classList.add("active");
 });
-editGoalsBtn.addEventListener("click", () => {
-    goalsForm.classList.toggle("hidden");
-    if (!goalsForm.classList.contains("hidden")) {
-        inputGoalP.value = userGoals.p;
-        inputGoalC.value = userGoals.c;
-        inputGoalF.value = userGoals.f;
-    }
+
+// Nav Listeners
+prevBtn.addEventListener("click", () => {
+    currentDate.setDate(currentDate.getDate() - 1);
+    loadData();
 });
-saveGoalsBtn.addEventListener("click", () => {
-    // FIX: Parse as number, but treat empty as 0
-    const p = Number(inputGoalP.value);
-    const c = Number(inputGoalC.value);
-    const f = Number(inputGoalF.value);
-
-    // FIX: Block negatives
-    if (p < 0 || c < 0 || f < 0) {
-        alert("Goals cannot be negative.");
-        return;
-    }
-
-    const newCal = (p * 4) + (c * 4) + (f * 9);
-    userGoals = { cal: newCal, p, c, f };
-    localStorage.setItem("qu_user_goals", JSON.stringify(userGoals));
-    goalsForm.classList.add("hidden");
-    loadEntries(); 
+nextBtn.addEventListener("click", () => {
+    currentDate.setDate(currentDate.getDate() + 1);
+    loadData();
 });
-function renderCustomLibrary() {
-    libraryList.innerHTML = "";
-    const names = Object.keys(customFoods).sort();
-    if (names.length === 0) { libraryList.innerHTML = '<div style="color:#444; font-size:0.8rem;">No custom foods yet.</div>'; return; }
-    names.forEach(name => {
-        const item = document.createElement("div");
-        item.classList.add("lib-item");
-        item.innerHTML = `<span class="lib-name">${name}</span><button class="lib-delete" onclick="deleteCustomFood('${name}')">×</button>`;
-        libraryList.appendChild(item);
-    });
-}
-window.deleteCustomFood = function(name) {
-    if (confirm(`Delete "${name}"?`)) {
-        delete customFoods[name];
-        localStorage.setItem("qu_custom_foods", JSON.stringify(customFoods));
-        renderCustomLibrary(); populateDropdown();
-    }
-}
 
-// --- INIT ---
-populateDropdown();
-updateView(); 
-loadEntries(); 
-updateSplitStatus();
+// START
+initApp();
