@@ -68,7 +68,7 @@ const goalFInput = document.getElementById("goal-f");
 // --- 3. AUTHENTICATION & INIT ---
 
 async function initApp() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = session.user;
         authOverlay.classList.add("hidden");
@@ -86,7 +86,7 @@ loginBtn.addEventListener("click", async () => {
     const password = passInput.value;
     msgDisplay.innerText = "Authenticating...";
     
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password
     });
@@ -103,14 +103,14 @@ loginBtn.addEventListener("click", async () => {
 
 // --- LOGOUT LOGIC ---
 document.getElementById("logout-btn").addEventListener("click", async () => {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
     if (!error) {
         window.location.reload(); // Reloads page -> shows Auth Overlay
     }
 });
 
 async function loadProfile() {
-    let { data, error } = await supabase
+    let { data, error } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
@@ -150,7 +150,7 @@ async function loadData() {
     const dayStr = currentDate.toISOString().split('T')[0];
 
     // 1. Load Goals
-    const { data: goals } = await supabase.from('user_goals').select('*').eq('user_id', currentUser.id).single();
+    const { data: goals } = await supabaseClient.from('user_goals').select('*').eq('user_id', currentUser.id).single();
     if (goals) {
         userGoals = { 
             cal: goals.target_calories, 
@@ -161,20 +161,20 @@ async function loadData() {
     }
 
     // A. Load Food Library
-    const { data: foods } = await supabase.from('custom_foods').select('*');
+    const { data: foods } = await supabaseClient.from('custom_foods').select('*');
     if (foods) customFoods = foods;
     populateDropdown(); 
 
     // B. Load Fuel Logs
-    const { data: fuel } = await supabase.from('fuel_logs').select('*').eq('date', dayStr);
+    const { data: fuel } = await supabaseClient.from('fuel_logs').select('*').eq('date', dayStr);
     if (fuel) entries = fuel;
 
     // C. Load Training Logs
-    const { data: train } = await supabase.from('training_logs').select('*').eq('date', dayStr);
+    const { data: train } = await supabaseClient.from('training_logs').select('*').eq('date', dayStr);
     if (train) trainingLog = train;
     
     // D. Load Body Logs
-    const { data: body } = await supabase
+    const { data: body } = await supabaseClient
         .from('body_logs')
         .select('*')
         .order('date', { ascending: false })
@@ -264,7 +264,7 @@ document.getElementById("add-btn").addEventListener("click", async function() {
     entries.push(newEntry);
     renderFuelFeed();
     
-    const { error } = await supabase.from('fuel_logs').insert([newEntry]);
+    const { error } = await supabaseClient.from('fuel_logs').insert([newEntry]);
     if (error) console.error("Save failed:", error);
     else loadData(); // Reload to get real ID
 });
@@ -272,7 +272,7 @@ document.getElementById("add-btn").addEventListener("click", async function() {
 // Delete Fuel
 window.deleteEntry = async function(id) {
     if (!id) return;
-    const { error } = await supabase.from('fuel_logs').delete().eq('id', id);
+    const { error } = await supabaseClient.from('fuel_logs').delete().eq('id', id);
     if (!error) {
         await loadData();
     }
@@ -350,7 +350,7 @@ document.getElementById("save-food-btn").addEventListener("click", async () => {
         fat: f
     };
 
-    const { error } = await supabase.from('custom_foods').insert([newFood]);
+    const { error } = await supabaseClient.from('custom_foods').insert([newFood]);
     
     if (!error) {
         alert("Food Saved to Global DB");
@@ -445,7 +445,7 @@ window.logSet = async function(exerciseName, splitName) {
     };
 
     // Save to DB
-    const { error } = await supabase.from('training_logs').insert([newSet]);
+    const { error } = await supabaseClient.from('training_logs').insert([newSet]);
     
     if (!error) {
         await loadData(); // Reload to sync
@@ -455,7 +455,7 @@ window.logSet = async function(exerciseName, splitName) {
 
 window.deleteSet = async function(id, splitName) {
     if(confirm("Delete this set?")) {
-        const { error } = await supabase.from('training_logs').delete().eq('id', id);
+        const { error } = await supabaseClient.from('training_logs').delete().eq('id', id);
         if (!error) {
             await loadData();
             renderWorkoutPage(splitName);
@@ -557,7 +557,7 @@ logWeightBtn.addEventListener("click", async () => {
     renderBodyFeed();
     weightInput.value = "";
 
-    const { error } = await supabase.from('body_logs').insert([newLog]);
+    const { error } = await supabaseClient.from('body_logs').insert([newLog]);
     if (error) console.error(error);
     else loadData(); // Reload to sync IDs
 });
@@ -594,7 +594,7 @@ window.deleteBodyLog = async function(id) {
         bodyLogs = bodyLogs.filter(l => l.id !== id);
         renderBodyFeed();
         
-        const { error } = await supabase.from('body_logs').delete().eq('id', id);
+        const { error } = await supabaseClient.from('body_logs').delete().eq('id', id);
         if (error) loadData(); // Revert on error
     }
 }
@@ -627,7 +627,7 @@ saveGoalsBtn.addEventListener("click", async () => {
     renderFuelFeed(); // Re-render bars
 
     // Save to Supabase (Upsert handles Insert or Update)
-    const { error } = await supabase.from('user_goals').upsert({
+    const { error } = await supabaseClient.from('user_goals').upsert({
         user_id: currentUser.id,
         target_calories: cal,
         target_p: p,
