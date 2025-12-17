@@ -264,6 +264,12 @@ document.getElementById("add-btn").addEventListener("click", async function() {
     entries.push(newEntry);
     renderFuelFeed();
     
+    // --- NEW: CLEAR THE FORM ---
+    nameInput.value = "";  // Reset Dropdown to "Select Fuel"
+    valueInput.value = ""; // Clear the number input
+    valueInput.placeholder = "Amount"; // Reset placeholder text
+    // ---------------------------
+
     const { error } = await supabaseClient.from('fuel_logs').insert([newEntry]);
     if (error) console.error("Save failed:", error);
     else loadData(); // Reload to get real ID
