@@ -1,7 +1,7 @@
 // --- 0. SUPABASE CONFIG ---
 const SUPABASE_URL = 'https://vmmtbbeftdyijuwzhvvv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtbXRiYmVmdGR5aWp1d3podnZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDU2MjEsImV4cCI6MjA4MTQyMTYyMX0.0FMniamkalbJm6LZXmUGZW5J9wcjIyfdnbDjvtnkoC8';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ADMIN CONFIG
 const ADMIN_EMAIL = "quyenducngo@gmail.com"; 
