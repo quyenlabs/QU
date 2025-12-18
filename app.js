@@ -24,6 +24,15 @@ const WORKOUT_SPLITS = {
     "SHOULDERS": ["Machine Seated Reverse Fly", "DB Lateral Raise", "Face Pull", "DB Seated Shoulder Press", "Single Arm Cable Front Raise"]
 };
 
+// --- HELPER: Get Local Date String (YYYY-MM-DD) ---
+// Fixes the "Vancouver vs UTC" bug by using local system time
+function getLocalDayStr(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // --- 2. DOM ELEMENTS ---
 // Auth
 const authOverlay = document.getElementById("auth-overlay");
@@ -147,7 +156,8 @@ function updateGreeting() {
 // --- 4. DATA SYNC ---
 
 async function loadData() {
-    const dayStr = currentDate.toISOString().split('T')[0];
+    // NEW (Good): Use local date string
+    const dayStr = getLocalDayStr(currentDate);
 
     // 1. Load Goals
     const { data: goals } = await supabaseClient.from('user_goals').select('*').eq('user_id', currentUser.id).single();
@@ -250,7 +260,8 @@ document.getElementById("add-btn").addEventListener("click", async function() {
 
     const newEntry = {
         user_id: currentUser.id,
-        date: currentDate.toISOString().split('T')[0],
+        // NEW:
+        date: getLocalDayStr(currentDate), 
         item_name: foodName,
         weight: weight,
         unit: foodStats.unit || 'g',
@@ -268,6 +279,7 @@ document.getElementById("add-btn").addEventListener("click", async function() {
     nameInput.value = "";  // Reset Dropdown to "Select Fuel"
     valueInput.value = ""; // Clear the number input
     valueInput.placeholder = "Amount"; // Reset placeholder text
+    previewEl.innerText = ""; // <--- ADD THIS LINE
     // ---------------------------
 
     const { error } = await supabaseClient.from('fuel_logs').insert([newEntry]);
@@ -297,16 +309,25 @@ function renderFuelFeed() {
 
         const newItem = document.createElement("div");
         newItem.classList.add("entry-card");
+        
+        // UPDATED HTML STRUCTURE:
+        // 1. Name is clean on top.
+        // 2. Bottom line matches the "Live Preview" format (Weight • Cal • Macros)
         newItem.innerHTML = `
             <div class="card-left">
                 <span class="entry-text">${entry.item_name}</span>
                 <div class="card-stats">
                     <span>${entry.weight}${entry.unit}</span>
-                    <div class="macro-group">
-                        <span class="macro-tag tag-p">${Math.round(entry.protein)}p</span>
-                        <span class="macro-tag tag-c">${Math.round(entry.carbs)}c</span>
-                        <span class="macro-tag tag-f">${Math.round(entry.fat)}f</span>
-                    </div>
+                    
+                    <span style="color:#444; margin: 0 6px;">•</span>
+                    
+                    <span style="color:#fff; font-weight:600;">${Math.round(entry.calories)} cal</span>
+                    
+                    <span style="color:#444; margin: 0 6px;">•</span>
+                    
+                    <span class="macro-tag tag-p">${Math.round(entry.protein)}P</span>
+                    <span class="macro-tag tag-c" style="margin-left:4px;">${Math.round(entry.carbs)}C</span>
+                    <span class="macro-tag tag-f" style="margin-left:4px;">${Math.round(entry.fat)}F</span>
                 </div>
             </div>
             <button class="delete-btn" onclick="deleteEntry('${entry.id}')">×</button>
@@ -320,8 +341,7 @@ function renderFuelFeed() {
     document.getElementById("total-c").innerText = Math.round(totals.c) + "g";
     document.getElementById("total-f").innerText = Math.round(totals.f) + "g";
 
-    // 2. NEW: Update Targets (The "/ 2500" Numbers)
-    // This gives you the visual feedback you were missing
+    // 2. Update Targets
     document.getElementById("goal-cal-display").innerText = "/ " + userGoals.cal;
     document.getElementById("goal-p-display").innerText = "/ " + userGoals.p + "g";
     document.getElementById("goal-c-display").innerText = "/ " + userGoals.c + "g";
@@ -444,7 +464,8 @@ window.logSet = async function(exerciseName, splitName) {
 
     const newSet = {
         user_id: currentUser.id,
-        date: currentDate.toISOString().split('T')[0],
+        // NEW:
+        date: getLocalDayStr(currentDate),
         exercise: exerciseName,
         weight: weightInput.value,
         reps: repsInput.value
@@ -472,10 +493,25 @@ window.deleteSet = async function(id, splitName) {
 // --- 7. UTILS & NAVIGATION ---
 
 function updateView() {
-    const isToday = currentDate.toDateString() === new Date().toDateString();
-    dateDisplay.innerText = isToday ? "TODAY" : currentDate.toISOString().split('T')[0];
+    // 1. Compare Local Dates to check if it's "Today"
+    const now = new Date();
+    const isToday = (
+        currentDate.getDate() === now.getDate() &&
+        currentDate.getMonth() === now.getMonth() &&
+        currentDate.getFullYear() === now.getFullYear()
+    );
+
+    // 2. Format the Date (e.g., "Dec 17")
+    const dateText = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    // 3. Set the Text
+    if (isToday) {
+        dateDisplay.innerText = `TODAY (${dateText})`;
+    } else {
+        dateDisplay.innerText = getLocalDayStr(currentDate); 
+    }
     
-    // Auto-calc for creator panel
+    // Auto-calc for creator panel (Existing logic)
     const calc = () => {
         const p = Number(document.getElementById("new-p").value) || 0;
         const c = Number(document.getElementById("new-c").value) || 0;
@@ -552,7 +588,8 @@ logWeightBtn.addEventListener("click", async () => {
 
     const newLog = {
         user_id: currentUser.id,
-        date: currentDate.toISOString().split('T')[0],
+        // NEW:
+        date: getLocalDayStr(currentDate),
         metric_type: 'weight',
         value: weight,
         unit: 'lbs'
@@ -644,6 +681,42 @@ saveGoalsBtn.addEventListener("click", async () => {
 
     if (error) console.error("Error saving goals:", error);
 });
+
+// --- LIVE PREVIEW LOGIC ---
+const previewEl = document.getElementById("live-preview");
+const entryName = document.getElementById("entry-name");
+const entryVal = document.getElementById("entry-value");
+
+function updateLivePreview() {
+    const foodName = entryName.value;
+    const weight = Number(entryVal.value);
+
+    // If data is missing, clear text
+    if (!foodName || !weight) {
+        previewEl.innerText = ""; 
+        return;
+    }
+
+    const lib = getFullLibrary();
+    const food = lib[foodName];
+
+    if (food) {
+        const refSize = food.serving || food.serving_size || 100;
+        const ratio = weight / refSize;
+
+        const cal = Math.round(food.cal * ratio);
+        const p = Math.round(food.p * ratio);
+        const c = Math.round(food.c * ratio);
+        const f = Math.round(food.f * ratio);
+
+        // Update the text
+        previewEl.innerHTML = `<span style="color:#fff">${cal} cal</span> <span style="color:#666"> • </span> <span style="color:#4ade80">${p}P</span> <span style="color:#60a5fa">${c}C</span> <span style="color:#f87171">${f}F</span>`;
+    }
+}
+
+// Attach listeners
+entryName.addEventListener("change", updateLivePreview);
+entryVal.addEventListener("input", updateLivePreview);
 
 // START
 initApp();
