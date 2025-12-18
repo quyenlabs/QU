@@ -118,8 +118,27 @@
                 </div>
             </div>
 
-            <div class="action-bar">
-                <button id="toggle-creator-btn" class="text-btn">+ Create New Fuel</button>
+            <div class="action-bar" style="display:flex; justify-content:space-between; align-items:center;">
+                <button id="toggle-creator-btn" class="text-btn">+ New Item</button>
+                
+                <button id="toggle-meals-btn" class="text-btn" style="color:#4ade80;">⚡️ My Meals</button>
+            </div>
+
+            <div id="meals-panel" class="creator-panel hidden">
+                <h3>Saved Meals</h3>
+                <div id="saved-meals-list" style="margin-bottom:20px; border-bottom:1px dashed #333; padding-bottom:10px;">
+                    <p style="color:#666; font-size:0.8rem;">No saved meals yet.</p>
+                </div>
+
+                <h3>Build New Meal</h3>
+                <input type="text" id="meal-builder-name" placeholder="Meal Name (e.g. Power Breakfast)" style="margin-bottom:10px;">
+                
+                <div id="meal-builder-rows">
+                    </div>
+                
+                <button id="add-row-btn" style="background:#222; color:#888; padding:5px; width:100%; margin-bottom:10px; font-size:0.8rem;">+ Add Ingredient</button>
+                
+                <button id="save-meal-btn" class="save-btn">SAVE MEAL PRESET</button>
             </div>
 
             <div id="creator-form" class="creator-panel hidden">
@@ -143,10 +162,6 @@
                     <span id="calc-calories">0</span>
                 </div>
                 <button id="save-food-btn" class="save-btn">SAVE TO LIBRARY</button>
-                <div class="library-section">
-                    <h4>MY CUSTOM FOODS</h4>
-                    <div id="library-list"></div>
-                </div>
             </div>
 
             <div class="input-group">

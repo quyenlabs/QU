@@ -10,13 +10,12 @@ const ADMIN_EMAIL = "quyenducngo@gmail.com";
 let currentUser = null;
 let userProfile = null;
 let currentDate = new Date();
-let entries = [];         // Fuel Logs
-let trainingLog = [];     // Workout Logs
-let completedSessions = []; // Session Locks
-let customFoods = [];     // The Cloud Library
-let userGoals = { cal: 2460, p: 175, c: 350, f: 40 }; // Default/Local for now
-let bodyLogs = []; // State for weight
-let viewingUserId = null; // NEW: Controls whose data we see
+let entries = [];         
+let trainingLog = [];     
+let customFoods = [];     
+let userGoals = { cal: 2460, p: 175, c: 350, f: 40 }; 
+let bodyLogs = []; 
+let viewingUserId = null; 
 
 const WORKOUT_SPLITS = {
     "LEGS": ["Machine Seated Leg Extension", "Hip Thrust (Bar/Machine)", "Seated Leg Press", "Machine Seated Single Leg Curl", "DB Rear Foot Elevated Split Squat"],
@@ -25,8 +24,6 @@ const WORKOUT_SPLITS = {
     "SHOULDERS": ["Machine Seated Reverse Fly", "DB Lateral Raise", "Face Pull", "DB Seated Shoulder Press", "Single Arm Cable Front Raise"]
 };
 
-// --- HELPER: Get Local Date String (YYYY-MM-DD) ---
-// Fixes the "Vancouver vs UTC" bug by using local system time
 function getLocalDayStr(dateObj) {
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -34,39 +31,40 @@ function getLocalDayStr(dateObj) {
     return `${year}-${month}-${day}`;
 }
 
-// --- 2. DOM ELEMENTS ---
-// Auth
+// --- 2. DOM ELEMENTS (MOVED UP FOR SAFETY) ---
 const authOverlay = document.getElementById("auth-overlay");
 const emailInput = document.getElementById("email-input");
 const passInput = document.getElementById("password-input");
 const loginBtn = document.getElementById("login-btn");
 const msgDisplay = document.getElementById("auth-msg");
 
-// App
 const modeFuelBtn = document.getElementById("mode-fuel");
 const modeTrainBtn = document.getElementById("mode-train");
+const modeBodyBtn = document.getElementById("mode-body");
+
 const fuelView = document.getElementById("fuel-view");
 const trainView = document.getElementById("train-view");
+const bodyView = document.getElementById("body-view");
+
 const dateDisplay = document.getElementById("current-date-display");
 const prevBtn = document.getElementById("prev-day");
 const nextBtn = document.getElementById("next-day");
 const feed = document.getElementById("feed");
+
 const creatorPanel = document.getElementById("creator-form");
 const toggleCreatorBtn = document.getElementById("toggle-creator-btn");
+
 const trainSelector = document.getElementById("train-selector");
 const trainActive = document.getElementById("train-active");
 const activeSplitName = document.getElementById("active-split-name");
 const exerciseList = document.getElementById("exercise-list");
 const backToSplitBtn = document.getElementById("back-to-split");
-// Body View Elements
-const modeBodyBtn = document.getElementById("mode-body");
-const bodyView = document.getElementById("body-view");
+
 const weightInput = document.getElementById("weight-input");
 const logWeightBtn = document.getElementById("log-weight-btn");
 const weightFeed = document.getElementById("weight-feed");
 const currentWeightDisplay = document.getElementById("current-weight-display");
 
-// Goals Elements
 const editGoalsBtn = document.getElementById("edit-goals-btn");
 const goalsForm = document.getElementById("goals-form");
 const saveGoalsBtn = document.getElementById("save-goals-btn");
@@ -74,8 +72,19 @@ const goalPInput = document.getElementById("goal-p");
 const goalCInput = document.getElementById("goal-c");
 const goalFInput = document.getElementById("goal-f");
 
-// Lock In Overlay
 const lockInOverlay = document.getElementById("lock-in-overlay");
+const coachSelect = document.getElementById("coach-selector");
+
+// NEW: Meal Manager Elements
+const mealsPanel = document.getElementById("meals-panel");
+const toggleMealsBtn = document.getElementById("toggle-meals-btn");
+const savedMealsList = document.getElementById("saved-meals-list");
+const mealBuilderRows = document.getElementById("meal-builder-rows");
+
+// NEW: Live Preview Elements
+const previewEl = document.getElementById("live-preview");
+const entryName = document.getElementById("entry-name");
+const entryVal = document.getElementById("entry-value");
 
 // --- 3. AUTHENTICATION & INIT ---
 
@@ -83,56 +92,62 @@ async function initApp() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = session.user;
-        viewingUserId = currentUser.id; // Default: View myself
+        viewingUserId = currentUser.id; 
 
-        authOverlay.classList.add("hidden");
+        if (authOverlay) authOverlay.classList.add("hidden");
         console.log("Logged in as:", currentUser.email);
         
         await loadProfile();
 
-        // NEW: If you are the Admin, load the Client Dropdown
         if (currentUser.email === ADMIN_EMAIL) {
             await loadClientList();
+            
+            // Check for sticky admin view
+            const savedView = localStorage.getItem("admin_viewing_id");
+            if (savedView && savedView !== "ME") {
+                viewingUserId = savedView;
+                if (coachSelect) coachSelect.value = savedView; 
+                document.body.style.borderTop = "4px solid #4ade80"; 
+            }
         }
 
         await loadData();
-        
-        // TRIGGER THE LOCK IN
         triggerLockIn(); 
 
     } else {
-        authOverlay.classList.remove("hidden");
+        if (authOverlay) authOverlay.classList.remove("hidden");
     }
 }
 
-// Login Handler
-loginBtn.addEventListener("click", async () => {
-    const email = emailInput.value;
-    const password = passInput.value;
-    msgDisplay.innerText = "Authenticating...";
-    
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password
+if (loginBtn) {
+    loginBtn.addEventListener("click", async () => {
+        const email = emailInput.value;
+        const password = passInput.value;
+        msgDisplay.innerText = "Authenticating...";
+        
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            msgDisplay.innerText = error.message;
+        } else {
+            currentUser = data.user;
+            authOverlay.classList.add("hidden");
+            window.location.reload();
+        }
     });
+}
 
-    if (error) {
-        msgDisplay.innerText = error.message;
-    } else {
-        currentUser = data.user;
-        authOverlay.classList.add("hidden");
-        await loadProfile();
-        await loadData();
-    }
-});
-
-// --- LOGOUT LOGIC ---
-document.getElementById("logout-btn").addEventListener("click", async () => {
-    const { error } = await supabaseClient.auth.signOut();
-    if (!error) {
-        window.location.reload(); // Reloads page -> shows Auth Overlay
-    }
-});
+if (document.getElementById("logout-btn")) {
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+        const { error } = await supabaseClient.auth.signOut();
+        if (!error) {
+            window.location.reload(); 
+        }
+    });
+}
 
 async function loadProfile() {
     let { data, error } = await supabaseClient
@@ -143,13 +158,11 @@ async function loadProfile() {
     
     if (data) {
         userProfile = data;
-        // FIX: If display_name is null, fallback to email nickname
         if (!userProfile.display_name) {
             userProfile.display_name = currentUser.email.split('@')[0];
         }
         updateGreeting();
     } else {
-        // Fallback for new users if DB trigger failed
         userProfile = { display_name: currentUser.email.split('@')[0] };
         updateGreeting();
     }
@@ -160,25 +173,27 @@ function updateGreeting() {
     if (greetingEl && userProfile) {
         greetingEl.innerText = `Welcome, ${userProfile.display_name}`;
     }
-    
-    // ADMIN CHECK: Hide Creator Button if not you
     if (currentUser.email !== ADMIN_EMAIL) {
-        toggleCreatorBtn.classList.add("hidden");
+        if(toggleCreatorBtn) toggleCreatorBtn.classList.add("hidden");
+        if(toggleMealsBtn) toggleMealsBtn.classList.add("hidden"); 
     } else {
-        toggleCreatorBtn.classList.remove("hidden");
+        if(toggleCreatorBtn) toggleCreatorBtn.classList.remove("hidden");
+        if(toggleMealsBtn) toggleMealsBtn.classList.remove("hidden");
     }
 }
 
 // --- 4. DATA SYNC ---
 
 async function loadData() {
+    if (!viewingUserId) return; 
+
     const dayStr = getLocalDayStr(currentDate);
 
-    // 1. Load Goals (Using viewingUserId)
+    // 1. Load Goals
     const { data: goals } = await supabaseClient
         .from('user_goals')
         .select('*')
-        .eq('user_id', viewingUserId) // <--- CHANGED
+        .eq('user_id', viewingUserId)
         .single();
 
     if (goals) {
@@ -189,36 +204,35 @@ async function loadData() {
             f: goals.target_f 
         };
     } else {
-        // Fallback if user has no goals set yet
         userGoals = { cal: 2000, p: 150, c: 200, f: 60 };
     }
 
-    // A. Load Food Library (Global)
+    // A. Load Food Library
     const { data: foods } = await supabaseClient.from('custom_foods').select('*');
     if (foods) customFoods = foods;
     populateDropdown(); 
 
-    // B. Load Fuel Logs (Using viewingUserId)
+    // B. Load Fuel Logs
     const { data: fuel } = await supabaseClient
         .from('fuel_logs')
         .select('*')
-        .eq('user_id', viewingUserId) // <--- CHANGED
+        .eq('user_id', viewingUserId)
         .eq('date', dayStr);
     if (fuel) entries = fuel;
 
-    // C. Load Training Logs (Using viewingUserId)
+    // C. Load Training Logs
     const { data: train } = await supabaseClient
         .from('training_logs')
         .select('*')
-        .eq('user_id', viewingUserId) // <--- CHANGED
+        .eq('user_id', viewingUserId)
         .eq('date', dayStr);
     if (train) trainingLog = train;
     
-    // D. Load Body Logs (Using viewingUserId)
+    // D. Load Body Logs
     const { data: body } = await supabaseClient
         .from('body_logs')
         .select('*')
-        .eq('user_id', viewingUserId) // <--- CHANGED
+        .eq('user_id', viewingUserId)
         .order('date', { ascending: false })
         .limit(30);
     if (body) {
@@ -233,12 +247,11 @@ async function loadData() {
 // --- 5. CORE LOGIC: FUEL ---
 
 function getFullLibrary() {
-    // Now ALL foods come from the Cloud (customFoods)
     const library = {};
     customFoods.forEach(f => {
         library[f.name] = {
             unit: f.unit,
-            serving: f.serving_size, // Map DB column to App property
+            serving: f.serving_size, 
             cal: f.calories,
             p: f.protein,
             c: f.carbs,
@@ -249,76 +262,71 @@ function getFullLibrary() {
 }
 
 function populateDropdown() {
-    const nameInput = document.getElementById("entry-name");
+    if(!entryName) return;
+    entryName.innerHTML = '<option value="" disabled selected>Select Fuel</option>';
     const library = getFullLibrary();
-    nameInput.innerHTML = '<option value="" disabled selected>Select Fuel</option>';
     Object.keys(library).sort().forEach(foodName => {
         const option = document.createElement("option");
         option.value = foodName;
         option.innerText = foodName;
-        nameInput.appendChild(option);
+        entryName.appendChild(option);
     });
 }
 
-// --- SMART LABEL LOGIC ---
-document.getElementById("entry-name").addEventListener("change", function() {
-    const foodName = this.value;
-    const library = getFullLibrary();
-    const food = library[foodName];
-    
-    if (food) {
-        const input = document.getElementById("entry-value");
-        // If unit is 'qty', ask for 'Quantity', otherwise 'grams' or 'ml'
-        input.placeholder = food.unit === 'qty' ? "Quantity (1, 2...)" : `Amount (${food.unit})`;
-    }
-});
+// SMART LABEL
+if(entryName) {
+    entryName.addEventListener("change", function() {
+        const foodName = this.value;
+        const library = getFullLibrary();
+        const food = library[foodName];
+        if (food) {
+            entryVal.placeholder = food.unit === 'qty' ? "Quantity (1, 2...)" : `Amount (${food.unit})`;
+        }
+    });
+}
 
-// Add Fuel
-document.getElementById("add-btn").addEventListener("click", async function() {
-    const nameInput = document.getElementById("entry-name");
-    const valueInput = document.getElementById("entry-value");
-    
-    if (nameInput.value === "" || valueInput.value === "") return;
-    
-    const foodName = nameInput.value;
-    const weight = Number(valueInput.value);
-    
-    const fullLib = getFullLibrary(); 
-    const foodStats = fullLib[foodName];
-    if (!foodStats) { alert("Error finding food stats"); return; }
-    
-    const referenceSize = foodStats.serving_size || foodStats.serving || 100;
-    const multiplier = weight / referenceSize;
+// ADD FUEL
+if(document.getElementById("add-btn")) {
+    document.getElementById("add-btn").addEventListener("click", async function() {
+        if (entryName.value === "" || entryVal.value === "") return;
+        
+        const foodName = entryName.value;
+        const weight = Number(entryVal.value);
+        
+        const fullLib = getFullLibrary(); 
+        const foodStats = fullLib[foodName];
+        if (!foodStats) { alert("Error finding food stats"); return; }
+        
+        const referenceSize = foodStats.serving_size || foodStats.serving || 100;
+        const multiplier = weight / referenceSize;
 
-    const newEntry = {
-        user_id: viewingUserId, // <--- CHANGED
-        date: getLocalDayStr(currentDate), 
-        item_name: foodName,
-        weight: weight,
-        unit: foodStats.unit || 'g',
-        calories: (foodStats.cal || foodStats.calories) * multiplier,
-        protein: (foodStats.p || foodStats.protein) * multiplier,
-        carbs: (foodStats.c || foodStats.carbs) * multiplier,
-        fat: (foodStats.f || foodStats.fat) * multiplier
-    };
+        const newEntry = {
+            user_id: viewingUserId,
+            date: getLocalDayStr(currentDate), 
+            item_name: foodName,
+            weight: weight,
+            unit: foodStats.unit || 'g',
+            calories: (foodStats.cal || foodStats.calories) * multiplier,
+            protein: (foodStats.p || foodStats.protein) * multiplier,
+            carbs: (foodStats.c || foodStats.carbs) * multiplier,
+            fat: (foodStats.f || foodStats.fat) * multiplier
+        };
 
-    // Optimistic UI
-    entries.push(newEntry);
-    renderFuelFeed();
-    
-    // --- NEW: CLEAR THE FORM ---
-    nameInput.value = "";  // Reset Dropdown to "Select Fuel"
-    valueInput.value = ""; // Clear the number input
-    valueInput.placeholder = "Amount"; // Reset placeholder text
-    previewEl.innerText = ""; // <--- ADD THIS LINE
-    // ---------------------------
+        entries.push(newEntry);
+        renderFuelFeed();
+        
+        // Clear Form
+        entryName.value = "";  
+        entryVal.value = ""; 
+        entryVal.placeholder = "Amount";
+        if(previewEl) previewEl.innerText = ""; 
 
-    const { error } = await supabaseClient.from('fuel_logs').insert([newEntry]);
-    if (error) console.error("Save failed:", error);
-    else loadData(); // Reload to get real ID
-});
+        const { error } = await supabaseClient.from('fuel_logs').insert([newEntry]);
+        if (error) console.error("Save failed:", error);
+        else loadData(); 
+    });
+}
 
-// Delete Fuel
 window.deleteEntry = async function(id) {
     if (!id) return;
     const { error } = await supabaseClient.from('fuel_logs').delete().eq('id', id);
@@ -327,8 +335,8 @@ window.deleteEntry = async function(id) {
     }
 };
 
-// Render Feed
 function renderFuelFeed() {
+    if(!feed) return;
     feed.innerHTML = "";
     let totals = { cal:0, p:0, c:0, f:0 };
 
@@ -341,8 +349,6 @@ function renderFuelFeed() {
         const newItem = document.createElement("div");
         newItem.classList.add("entry-card");
         
-        // UX UPDATE: 
-        // 1. The 'onclick' is now on the entire 'card-left' container.
         newItem.innerHTML = `
             <div class="card-left" 
                  onclick="editEntryWeight('${entry.id}', '${entry.item_name}', ${entry.weight})"
@@ -351,83 +357,78 @@ function renderFuelFeed() {
                 <span class="entry-text">${entry.item_name}</span>
                 <div class="card-stats">
                     <span>${entry.weight}${entry.unit}</span>
-                    
                     <span style="color:#444; margin: 0 6px;">•</span>
                     <span style="color:#fff; font-weight:600;">${Math.round(entry.calories)} cal</span>
                     <span style="color:#444; margin: 0 6px;">•</span>
-                    
                     <span class="macro-tag tag-p">${Math.round(entry.protein)}P</span>
                     <span class="macro-tag tag-c" style="margin-left:4px;">${Math.round(entry.carbs)}C</span>
                     <span class="macro-tag tag-f" style="margin-left:4px;">${Math.round(entry.fat)}F</span>
                 </div>
             </div>
-            
             <button class="delete-btn" onclick="deleteEntry('${entry.id}')">×</button>
         `;
         feed.prepend(newItem);
     });
 
-    // 1. Update Consumed (The Big Numbers)
-    document.getElementById("total-cal").innerText = Math.round(totals.cal);
-    document.getElementById("total-p").innerText = Math.round(totals.p) + "g";
-    document.getElementById("total-c").innerText = Math.round(totals.c) + "g";
-    document.getElementById("total-f").innerText = Math.round(totals.f) + "g";
+    if(document.getElementById("total-cal")) document.getElementById("total-cal").innerText = Math.round(totals.cal);
+    if(document.getElementById("total-p")) document.getElementById("total-p").innerText = Math.round(totals.p) + "g";
+    if(document.getElementById("total-c")) document.getElementById("total-c").innerText = Math.round(totals.c) + "g";
+    if(document.getElementById("total-f")) document.getElementById("total-f").innerText = Math.round(totals.f) + "g";
 
-    // 2. Update Targets
-    document.getElementById("goal-cal-display").innerText = "/ " + userGoals.cal;
-    document.getElementById("goal-p-display").innerText = "/ " + userGoals.p + "g";
-    document.getElementById("goal-c-display").innerText = "/ " + userGoals.c + "g";
-    document.getElementById("goal-f-display").innerText = "/ " + userGoals.f + "g";
+    if(document.getElementById("goal-cal-display")) document.getElementById("goal-cal-display").innerText = "/ " + userGoals.cal;
+    if(document.getElementById("goal-p-display")) document.getElementById("goal-p-display").innerText = "/ " + userGoals.p + "g";
+    if(document.getElementById("goal-c-display")) document.getElementById("goal-c-display").innerText = "/ " + userGoals.c + "g";
+    if(document.getElementById("goal-f-display")) document.getElementById("goal-f-display").innerText = "/ " + userGoals.f + "g";
 
-    // 3. Update Progress Bars
     const pctP = Math.min((totals.p / userGoals.p) * 100, 100);
     const pctC = Math.min((totals.c / userGoals.c) * 100, 100);
     const pctF = Math.min((totals.f / userGoals.f) * 100, 100);
 
-    document.getElementById("bar-p").style.width = `${pctP}%`;
-    document.getElementById("bar-c").style.width = `${pctC}%`;
-    document.getElementById("bar-f").style.width = `${pctF}%`;
+    if(document.getElementById("bar-p")) document.getElementById("bar-p").style.width = `${pctP}%`;
+    if(document.getElementById("bar-c")) document.getElementById("bar-c").style.width = `${pctC}%`;
+    if(document.getElementById("bar-f")) document.getElementById("bar-f").style.width = `${pctF}%`;
 }
 
-// Create Custom Food (Admin)
-document.getElementById("save-food-btn").addEventListener("click", async () => {
-    const name = document.getElementById("new-food-name").value;
-    const p = Number(document.getElementById("new-p").value);
-    const c = Number(document.getElementById("new-c").value);
-    const f = Number(document.getElementById("new-f").value);
-    const cal = (p*4) + (c*4) + (f*9);
+// --- CREATOR LOGIC ---
+if(document.getElementById("save-food-btn")) {
+    document.getElementById("save-food-btn").addEventListener("click", async () => {
+        const name = document.getElementById("new-food-name").value;
+        const p = Number(document.getElementById("new-p").value);
+        const c = Number(document.getElementById("new-c").value);
+        const f = Number(document.getElementById("new-f").value);
+        const cal = (p*4) + (c*4) + (f*9);
 
-    const newFood = {
-        user_id: currentUser.id,
-        name: name,
-        unit: document.getElementById("new-unit").value,
-        serving_size: Number(document.getElementById("new-serving").value),
-        calories: cal,
-        protein: p,
-        carbs: c,
-        fat: f
-    };
+        const newFood = {
+            user_id: currentUser.id,
+            name: name,
+            unit: document.getElementById("new-unit").value,
+            serving_size: Number(document.getElementById("new-serving").value),
+            calories: cal,
+            protein: p,
+            carbs: c,
+            fat: f
+        };
 
-    const { error } = await supabaseClient.from('custom_foods').insert([newFood]);
-    
-    if (!error) {
-        alert("Food Saved to Global DB");
-        creatorPanel.classList.add("hidden");
-        loadData();
-    } else {
-        alert("Error: " + error.message);
-    }
-});
+        const { error } = await supabaseClient.from('custom_foods').insert([newFood]);
+        if (!error) {
+            alert("Food Saved to Global DB");
+            creatorPanel.classList.add("hidden");
+            loadData();
+        } else {
+            alert("Error: " + error.message);
+        }
+    });
+}
 
-// Creator Panel Toggle
-toggleCreatorBtn.addEventListener("click", () => {
-    creatorPanel.classList.toggle("hidden");
-    toggleCreatorBtn.innerText = creatorPanel.classList.contains("hidden") ? "+ Create New Fuel" : "Close Manager";
-    // We can add renderCustomLibrary() logic here later if we want to list them
-});
+if(toggleCreatorBtn) {
+    toggleCreatorBtn.addEventListener("click", () => {
+        creatorPanel.classList.toggle("hidden");
+        if(mealsPanel) mealsPanel.classList.add("hidden"); 
+        toggleCreatorBtn.innerText = creatorPanel.classList.contains("hidden") ? "+ New Item" : "Close";
+    });
+}
 
 // --- 6. CORE LOGIC: TRAIN ---
-
 window.startWorkout = function(splitName) {
     trainSelector.classList.add("hidden");
     trainActive.classList.remove("hidden");
@@ -435,21 +436,19 @@ window.startWorkout = function(splitName) {
     renderWorkoutPage(splitName);
 }
 
-backToSplitBtn.addEventListener("click", () => {
-    trainActive.classList.add("hidden");
-    trainSelector.classList.remove("hidden");
-});
+if(backToSplitBtn) {
+    backToSplitBtn.addEventListener("click", () => {
+        trainActive.classList.add("hidden");
+        trainSelector.classList.remove("hidden");
+    });
+}
 
 function renderWorkoutPage(splitName) {
     exerciseList.innerHTML = "";
     const exercises = WORKOUT_SPLITS[splitName];
-    // Simple lock check (can be enhanced with DB 'sessions' table later)
-    const isLocked = false; 
 
     exercises.forEach(exerciseName => {
-        // Find logs for today
         const todaysLogs = trainingLog.filter(t => t.exercise === exerciseName);
-        
         let logsHtml = "";
         todaysLogs.forEach(log => {
             logsHtml += `
@@ -489,24 +488,21 @@ function renderWorkoutPage(splitName) {
 function cleanId(str) { return str.replace(/[^a-zA-Z0-9]/g, ''); }
 
 window.logSet = async function(exerciseName, splitName) {
-    const weightInput = document.getElementById(`weight-${cleanId(exerciseName)}`);
-    const repsInput = document.getElementById(`reps-${cleanId(exerciseName)}`);
-    
-    if (!weightInput.value || !repsInput.value) return;
+    const wInput = document.getElementById(`weight-${cleanId(exerciseName)}`);
+    const rInput = document.getElementById(`reps-${cleanId(exerciseName)}`);
+    if (!wInput.value || !rInput.value) return;
 
     const newSet = {
-        user_id: viewingUserId, // <--- CHANGED
+        user_id: viewingUserId,
         date: getLocalDayStr(currentDate),
         exercise: exerciseName,
-        weight: weightInput.value,
-        reps: repsInput.value
+        weight: wInput.value,
+        reps: rInput.value
     };
 
-    // Save to DB
     const { error } = await supabaseClient.from('training_logs').insert([newSet]);
-    
     if (!error) {
-        await loadData(); // Reload to sync
+        await loadData();
         renderWorkoutPage(splitName);
     }
 }
@@ -524,128 +520,115 @@ window.deleteSet = async function(id, splitName) {
 // --- 7. UTILS & NAVIGATION ---
 
 function updateView() {
-    // 1. Compare Local Dates to check if it's "Today"
     const now = new Date();
     const isToday = (
         currentDate.getDate() === now.getDate() &&
         currentDate.getMonth() === now.getMonth() &&
         currentDate.getFullYear() === now.getFullYear()
     );
-
-    // 2. Format the Date (e.g., "Dec 17")
     const dateText = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    // 3. Set the Text
-    if (isToday) {
-        dateDisplay.innerText = `TODAY (${dateText})`;
-    } else {
-        dateDisplay.innerText = getLocalDayStr(currentDate); 
+    if (dateDisplay) {
+        if (isToday) {
+            dateDisplay.innerText = `TODAY (${dateText})`;
+        } else {
+            dateDisplay.innerText = getLocalDayStr(currentDate); 
+        }
     }
     
-    // Auto-calc for creator panel (Existing logic)
+    // Auto-calc listener
     const calc = () => {
         const p = Number(document.getElementById("new-p").value) || 0;
         const c = Number(document.getElementById("new-c").value) || 0;
         const f = Number(document.getElementById("new-f").value) || 0;
         document.getElementById("calc-calories").innerText = Math.round((p*4)+(c*4)+(f*9));
     };
-    ["new-p","new-c","new-f"].forEach(id => document.getElementById(id).addEventListener("input", calc));
+    
+    // SAFETY CHECK: Only add listeners if elements exist
+    ["new-p","new-c","new-f"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.addEventListener("input", calc);
+    });
 }
 
 // Mode Switching
-modeFuelBtn.addEventListener("click", () => { 
-    fuelView.classList.remove("hidden"); 
-    trainView.classList.add("hidden");
-    bodyView.classList.add("hidden"); // Add this
-    modeFuelBtn.classList.add("active");
-    modeTrainBtn.classList.remove("active");
-    modeBodyBtn.classList.remove("active"); // Add this
-});
-modeTrainBtn.addEventListener("click", () => { 
-    fuelView.classList.add("hidden"); 
-    trainView.classList.remove("hidden");
-    bodyView.classList.add("hidden"); // Add this
-    modeFuelBtn.classList.remove("active");
-    modeTrainBtn.classList.add("active");
-    modeBodyBtn.classList.remove("active"); // Add this
-});
+if(modeFuelBtn) {
+    modeFuelBtn.addEventListener("click", () => { 
+        fuelView.classList.remove("hidden"); 
+        trainView.classList.add("hidden");
+        bodyView.classList.add("hidden");
+        modeFuelBtn.classList.add("active");
+        modeTrainBtn.classList.remove("active");
+        modeBodyBtn.classList.remove("active");
+    });
+}
+if(modeTrainBtn) {
+    modeTrainBtn.addEventListener("click", () => { 
+        fuelView.classList.add("hidden"); 
+        trainView.classList.remove("hidden");
+        bodyView.classList.add("hidden");
+        modeFuelBtn.classList.remove("active");
+        modeTrainBtn.classList.add("active");
+        modeBodyBtn.classList.remove("active");
+    });
+}
+if(modeBodyBtn) {
+    modeBodyBtn.addEventListener("click", () => {
+        fuelView.classList.add("hidden");
+        trainView.classList.add("hidden");
+        bodyView.classList.remove("hidden");
+        modeFuelBtn.classList.remove("active");
+        modeTrainBtn.classList.remove("active");
+        modeBodyBtn.classList.add("active");
+    });
+}
 
-// Nav Listeners
-prevBtn.addEventListener("click", () => {
-    currentDate.setDate(currentDate.getDate() - 1);
-    loadData();
-});
-nextBtn.addEventListener("click", () => {
-    currentDate.setDate(currentDate.getDate() + 1);
-    loadData();
-});
+if(prevBtn) {
+    prevBtn.addEventListener("click", () => {
+        currentDate.setDate(currentDate.getDate() - 1);
+        loadData();
+    });
+}
+if(nextBtn) {
+    nextBtn.addEventListener("click", () => {
+        currentDate.setDate(currentDate.getDate() + 1);
+        loadData();
+    });
+}
 
 // --- 8. CORE LOGIC: BODY ---
+if(logWeightBtn) {
+    logWeightBtn.addEventListener("click", async () => {
+        const weight = weightInput.value;
+        if (!weight) return;
 
-// Mode Switching
-modeBodyBtn.addEventListener("click", () => {
-    fuelView.classList.add("hidden");
-    trainView.classList.add("hidden");
-    bodyView.classList.remove("hidden");
-    
-    modeFuelBtn.classList.remove("active");
-    modeTrainBtn.classList.remove("active");
-    modeBodyBtn.classList.add("active");
-});
+        const newLog = {
+            user_id: viewingUserId,
+            date: getLocalDayStr(currentDate),
+            metric_type: 'weight',
+            value: weight,
+            unit: 'lbs'
+        };
 
-// Update existing listeners to also hide bodyView
-modeFuelBtn.addEventListener("click", () => { 
-    fuelView.classList.remove("hidden"); 
-    trainView.classList.add("hidden");
-    bodyView.classList.add("hidden"); // Add this
-    modeFuelBtn.classList.add("active");
-    modeTrainBtn.classList.remove("active");
-    modeBodyBtn.classList.remove("active"); // Add this
-});
+        bodyLogs.unshift(newLog); 
+        renderBodyFeed();
+        weightInput.value = "";
 
-modeTrainBtn.addEventListener("click", () => { 
-    fuelView.classList.add("hidden"); 
-    trainView.classList.remove("hidden");
-    bodyView.classList.add("hidden"); // Add this
-    modeFuelBtn.classList.remove("active");
-    modeTrainBtn.classList.add("active");
-    modeBodyBtn.classList.remove("active"); // Add this
-});
-
-// Log Weight
-logWeightBtn.addEventListener("click", async () => {
-    const weight = weightInput.value;
-    if (!weight) return;
-
-    const newLog = {
-        user_id: viewingUserId, // <--- CHANGED
-        date: getLocalDayStr(currentDate),
-        metric_type: 'weight',
-        value: weight,
-        unit: 'lbs'
-    };
-
-    // Optimistic UI
-    bodyLogs.unshift(newLog); // Add to top of list
-    renderBodyFeed();
-    weightInput.value = "";
-
-    const { error } = await supabaseClient.from('body_logs').insert([newLog]);
-    if (error) console.error(error);
-    else loadData(); // Reload to sync IDs
-});
+        const { error } = await supabaseClient.from('body_logs').insert([newLog]);
+        if (error) console.error(error);
+        else loadData();
+    });
+}
 
 function renderBodyFeed() {
+    if(!weightFeed) return;
     weightFeed.innerHTML = "";
-    
-    // Update Big Display (Latest weight)
     if (bodyLogs.length > 0) {
-        currentWeightDisplay.innerText = bodyLogs[0].value + " lbs";
+        if(currentWeightDisplay) currentWeightDisplay.innerText = bodyLogs[0].value + " lbs";
     } else {
-        currentWeightDisplay.innerText = "--";
+        if(currentWeightDisplay) currentWeightDisplay.innerText = "--";
     }
 
-    // Render List
     bodyLogs.forEach(log => {
         const item = document.createElement("div");
         item.classList.add("weight-card");
@@ -663,65 +646,54 @@ function renderBodyFeed() {
 window.deleteBodyLog = async function(id) {
     if (!id) return;
     if(confirm("Delete this weigh-in?")) {
-        // Optimistic remove
         bodyLogs = bodyLogs.filter(l => l.id !== id);
         renderBodyFeed();
-        
         const { error } = await supabaseClient.from('body_logs').delete().eq('id', id);
-        if (error) loadData(); // Revert on error
+        if (error) loadData(); 
     }
 }
 
 // --- 9. GOALS LOGIC ---
-
-// Toggle Edit Form
-editGoalsBtn.addEventListener("click", () => {
-    goalsForm.classList.toggle("hidden");
-    if (!goalsForm.classList.contains("hidden")) {
-        // Pre-fill inputs with current values
-        goalPInput.value = userGoals.p;
-        goalCInput.value = userGoals.c;
-        goalFInput.value = userGoals.f;
-    }
-});
-
-// Save Goals
-saveGoalsBtn.addEventListener("click", async () => {
-    const p = Number(goalPInput.value);
-    const c = Number(goalCInput.value);
-    const f = Number(goalFInput.value);
-    const cal = Math.round((p * 4) + (c * 4) + (f * 9));
-
-    // Update Local State
-    userGoals = { cal, p, c, f };
-
-    // Update UI immediately
-    goalsForm.classList.add("hidden");
-    renderFuelFeed(); // Re-render bars
-
-    // Save to Supabase (Upsert handles Insert or Update)
-    const { error } = await supabaseClient.from('user_goals').upsert({
-        user_id: viewingUserId, // <--- CHANGED
-        target_calories: cal,
-        target_p: p,
-        target_c: c,
-        target_f: f,
-        updated_at: new Date()
+if(editGoalsBtn) {
+    editGoalsBtn.addEventListener("click", () => {
+        goalsForm.classList.toggle("hidden");
+        if (!goalsForm.classList.contains("hidden")) {
+            goalPInput.value = userGoals.p;
+            goalCInput.value = userGoals.c;
+            goalFInput.value = userGoals.f;
+        }
     });
+}
 
-    if (error) console.error("Error saving goals:", error);
-});
+if(saveGoalsBtn) {
+    saveGoalsBtn.addEventListener("click", async () => {
+        const p = Number(goalPInput.value);
+        const c = Number(goalCInput.value);
+        const f = Number(goalFInput.value);
+        const cal = Math.round((p * 4) + (c * 4) + (f * 9));
+
+        userGoals = { cal, p, c, f };
+
+        goalsForm.classList.add("hidden");
+        renderFuelFeed(); 
+
+        const { error } = await supabaseClient.from('user_goals').upsert({
+            user_id: viewingUserId,
+            target_calories: cal,
+            target_p: p,
+            target_c: c,
+            target_f: f,
+            updated_at: new Date()
+        });
+    });
+}
 
 // --- LIVE PREVIEW LOGIC ---
-const previewEl = document.getElementById("live-preview");
-const entryName = document.getElementById("entry-name");
-const entryVal = document.getElementById("entry-value");
-
 function updateLivePreview() {
+    if(!entryName || !entryVal || !previewEl) return;
     const foodName = entryName.value;
     const weight = Number(entryVal.value);
 
-    // If data is missing, clear text
     if (!foodName || !weight) {
         previewEl.innerText = ""; 
         return;
@@ -739,32 +711,26 @@ function updateLivePreview() {
         const c = Math.round(food.c * ratio);
         const f = Math.round(food.f * ratio);
 
-        // Update the text
         previewEl.innerHTML = `<span style="color:#fff">${cal} cal</span> <span style="color:#666"> • </span> <span style="color:#4ade80">${p}P</span> <span style="color:#60a5fa">${c}C</span> <span style="color:#f87171">${f}F</span>`;
     }
 }
 
 // Attach listeners
-entryName.addEventListener("change", updateLivePreview);
-entryVal.addEventListener("input", updateLivePreview);
+if(entryName) entryName.addEventListener("change", updateLivePreview);
+if(entryVal) entryVal.addEventListener("input", updateLivePreview);
 
 // --- COACH MODE LOGIC ---
-const coachSelect = document.getElementById("coach-selector");
-
 async function loadClientList() {
-    // Reveal the dropdown
-    coachSelect.classList.remove("hidden");
+    if (!coachSelect) return; // FIX: Don't run if element is missing
 
-    // Fetch all profiles
+    coachSelect.classList.remove("hidden");
     const { data: profiles } = await supabaseClient
         .from('profiles')
         .select('id, display_name');
 
     if (profiles) {
         profiles.forEach(p => {
-            // Skip showing yourself in the list (redundant)
             if (p.id === currentUser.id) return;
-
             const opt = document.createElement("option");
             opt.value = p.id;
             opt.innerText = p.display_name || "User";
@@ -772,61 +738,50 @@ async function loadClientList() {
         });
     }
 
-    // Handle Switching
     coachSelect.addEventListener("change", () => {
         const selection = coachSelect.value;
+        localStorage.setItem("admin_viewing_id", selection); 
         
         if (selection === "ME") {
             viewingUserId = currentUser.id;
             document.body.style.borderTop = "none"; 
         } else {
             viewingUserId = selection;
-            // Visual Hint: Green Border = God Mode Active
             document.body.style.borderTop = "4px solid #4ade80"; 
         }
-        
-        // Reload all data for the selected user
         loadData();
     });
 }
 
 // --- DAILY LOCK IN PROTOCOL ---
 function triggerLockIn() {
+    if(!lockInOverlay) return;
     const todayStr = getLocalDayStr(new Date());
     const lastSeen = localStorage.getItem("last_lock_in_date");
-
-    // If we haven't seen it today, SHOW IT
     if (lastSeen !== todayStr) {
         lockInOverlay.classList.remove("hidden");
-        
-        // Listen for the "Tap to Execute"
         lockInOverlay.addEventListener("click", () => {
             lockInOverlay.classList.add("hidden");
-            // Save today's date so it doesn't show again until tomorrow
             localStorage.setItem("last_lock_in_date", todayStr);
-        }, { once: true }); // Important: Run listener only once
+        }, { once: true });
     }
 }
 
 // --- EDIT FEATURE ---
 window.editEntryWeight = async function(id, foodName, currentWeight) {
-    // 1. Get the new number
     const newWeightStr = prompt(`Update amount for ${foodName}:`, currentWeight);
-    if (!newWeightStr) return; // Cancelled
+    if (!newWeightStr) return; 
     
     const newWeight = Number(newWeightStr);
-    if (!newWeight || newWeight <= 0) return; // Invalid
+    if (!newWeight || newWeight <= 0) return; 
 
-    // 2. Find the reference food to get macro ratios
     const fullLib = getFullLibrary(); 
     const foodStats = fullLib[foodName];
-    
     if (!foodStats) {
         alert("Cannot edit: Original food source not found in library.");
         return;
     }
 
-    // 3. Recalculate Macros
     const referenceSize = foodStats.serving_size || foodStats.serving || 100;
     const multiplier = newWeight / referenceSize;
 
@@ -838,14 +793,12 @@ window.editEntryWeight = async function(id, foodName, currentWeight) {
         fat: (foodStats.f || foodStats.fat) * multiplier
     };
 
-    // 4. Optimistic UI Update
     const index = entries.findIndex(e => e.id === id);
     if (index !== -1) {
         entries[index] = { ...entries[index], ...updates };
-        renderFuelFeed(); // Re-draw immediately
+        renderFuelFeed(); 
     }
 
-    // 5. Save to Supabase
     const { error } = await supabaseClient
         .from('fuel_logs')
         .update(updates)
@@ -853,9 +806,179 @@ window.editEntryWeight = async function(id, foodName, currentWeight) {
 
     if (error) {
         console.error("Update failed:", error);
-        loadData(); // Revert on error
+        loadData(); 
     }
 };
+
+// --- MEAL MANAGER LOGIC ---
+
+// 1. Toggle Panel (Fixed)
+if(toggleMealsBtn) {
+    toggleMealsBtn.addEventListener("click", () => {
+        if(mealsPanel) mealsPanel.classList.toggle("hidden");
+        // Force close creator if open
+        if(creatorPanel) creatorPanel.classList.add("hidden"); 
+        if(toggleCreatorBtn) toggleCreatorBtn.innerText = "+ New Fuel";
+
+        if (mealsPanel && !mealsPanel.classList.contains("hidden")) {
+            loadMealTemplates();
+            // Start with 1 row if empty
+            if (mealBuilderRows && mealBuilderRows.children.length === 0) addBuilderRow(); 
+        }
+    });
+}
+
+// 2. Load Templates
+async function loadMealTemplates() {
+    if(!savedMealsList) return;
+    savedMealsList.innerHTML = "Loading...";
+    
+    const { data: meals } = await supabaseClient
+        .from('meal_templates')
+        .select('*')
+        .eq('user_id', viewingUserId); 
+    
+    savedMealsList.innerHTML = "";
+    
+    if (meals && meals.length > 0) {
+        meals.forEach(meal => {
+            const div = document.createElement("div");
+            div.className = "lib-item"; 
+            div.innerHTML = `
+                <span class="lib-name" style="color:#fff; font-weight:bold;">⚡️ ${meal.name}</span>
+                <div style="display:flex; align-items:center;">
+                    <button class="log-meal-btn" onclick="window.explodeMeal('${meal.id}')">LOG +</button>
+                    <button class="lib-delete" onclick="window.deleteMealTemplate('${meal.id}')">×</button>
+                </div>
+            `;
+            savedMealsList.appendChild(div);
+        });
+    } else {
+        savedMealsList.innerHTML = '<p style="color:#666; font-size:0.8rem;">No saved meals.</p>';
+    }
+}
+
+// 3. EXPLODE MEAL (Attached to Window for Safety)
+window.explodeMeal = async function(mealId) {
+    const { data: meal } = await supabaseClient.from('meal_templates').select('*').eq('id', mealId).single();
+    if (!meal) return;
+    
+    // Quick confirm
+    if (!confirm(`Log "${meal.name}" now?`)) return;
+
+    const fullLib = getFullLibrary();
+    const newLogs = [];
+
+    meal.items.forEach(item => {
+        const foodStats = fullLib[item.name];
+        if (foodStats) {
+            const refSize = foodStats.serving_size || foodStats.serving || 100;
+            const multiplier = item.amount / refSize;
+
+            newLogs.push({
+                user_id: viewingUserId,
+                date: getLocalDayStr(currentDate),
+                item_name: item.name,
+                weight: item.amount,
+                unit: foodStats.unit || 'g',
+                calories: (foodStats.cal || foodStats.calories) * multiplier,
+                protein: (foodStats.p || foodStats.protein) * multiplier,
+                carbs: (foodStats.c || foodStats.carbs) * multiplier,
+                fat: (foodStats.f || foodStats.fat) * multiplier
+            });
+        }
+    });
+
+    const { error } = await supabaseClient.from('fuel_logs').insert(newLogs);
+    if (!error) {
+        loadData(); 
+        if(mealsPanel) mealsPanel.classList.add("hidden"); 
+    } else {
+        alert("Error logging meal: " + error.message);
+    }
+};
+
+window.deleteMealTemplate = async function(id) {
+    if (confirm("Delete this preset?")) {
+        await supabaseClient.from('meal_templates').delete().eq('id', id);
+        loadMealTemplates();
+    }
+};
+
+// 4. Meal Builder
+if(document.getElementById("add-row-btn")) {
+    document.getElementById("add-row-btn").addEventListener("click", addBuilderRow);
+}
+
+function addBuilderRow() {
+    if(!mealBuilderRows) return;
+    const row = document.createElement("div");
+    row.className = "input-group-row";
+    row.style.marginBottom = "5px";
+    
+    const select = document.createElement("select");
+    select.className = "meal-builder-select";
+    select.style.flex = "2";
+    if(entryName) select.innerHTML = entryName.innerHTML; 
+    
+    const input = document.createElement("input");
+    input.type = "number";
+    input.placeholder = "Amt";
+    input.style.flex = "1";
+    input.style.minWidth = "50px";
+
+    // Delete Row Button
+    const delBtn = document.createElement("button");
+    delBtn.className = "row-delete-btn";
+    delBtn.innerText = "×";
+    delBtn.onclick = () => row.remove();
+
+    // Auto-update Unit
+    select.addEventListener("change", () => {
+        const lib = getFullLibrary();
+        const food = lib[select.value];
+        if(food) input.placeholder = food.unit; 
+    });
+
+    row.appendChild(select);
+    row.appendChild(input);
+    row.appendChild(delBtn);
+    mealBuilderRows.appendChild(row);
+}
+
+// 5. Save Template
+if(document.getElementById("save-meal-btn")) {
+    document.getElementById("save-meal-btn").addEventListener("click", async () => {
+        const name = document.getElementById("meal-builder-name").value;
+        if (!name) return alert("Name your meal");
+
+        const items = [];
+        const rows = mealBuilderRows.querySelectorAll(".input-group-row");
+        
+        rows.forEach(row => {
+            const foodName = row.querySelector("select").value;
+            const amount = Number(row.querySelector("input").value);
+            if (foodName && amount) {
+                items.push({ name: foodName, amount: amount });
+            }
+        });
+
+        if (items.length === 0) return alert("Add at least one ingredient");
+
+        const { error } = await supabaseClient.from('meal_templates').insert({
+            user_id: viewingUserId,
+            name: name,
+            items: items
+        });
+
+        if (!error) {
+            document.getElementById("meal-builder-name").value = "";
+            mealBuilderRows.innerHTML = "";
+            addBuilderRow();
+            loadMealTemplates(); 
+        }
+    });
+}
 
 // START
 initApp();
