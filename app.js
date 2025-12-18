@@ -16,6 +16,7 @@ let completedSessions = []; // Session Locks
 let customFoods = [];     // The Cloud Library
 let userGoals = { cal: 2460, p: 175, c: 350, f: 40 }; // Default/Local for now
 let bodyLogs = []; // State for weight
+let viewingUserId = null; // NEW: Controls whose data we see
 
 const WORKOUT_SPLITS = {
     "LEGS": ["Machine Seated Leg Extension", "Hip Thrust (Bar/Machine)", "Seated Leg Press", "Machine Seated Single Leg Curl", "DB Rear Foot Elevated Split Squat"],
@@ -73,6 +74,8 @@ const goalPInput = document.getElementById("goal-p");
 const goalCInput = document.getElementById("goal-c");
 const goalFInput = document.getElementById("goal-f");
 
+// Lock In Overlay
+const lockInOverlay = document.getElementById("lock-in-overlay");
 
 // --- 3. AUTHENTICATION & INIT ---
 
@@ -80,10 +83,23 @@ async function initApp() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = session.user;
+        viewingUserId = currentUser.id; // Default: View myself
+
         authOverlay.classList.add("hidden");
         console.log("Logged in as:", currentUser.email);
+        
         await loadProfile();
+
+        // NEW: If you are the Admin, load the Client Dropdown
+        if (currentUser.email === ADMIN_EMAIL) {
+            await loadClientList();
+        }
+
         await loadData();
+        
+        // TRIGGER THE LOCK IN
+        triggerLockIn(); 
+
     } else {
         authOverlay.classList.remove("hidden");
     }
@@ -156,11 +172,15 @@ function updateGreeting() {
 // --- 4. DATA SYNC ---
 
 async function loadData() {
-    // NEW (Good): Use local date string
     const dayStr = getLocalDayStr(currentDate);
 
-    // 1. Load Goals
-    const { data: goals } = await supabaseClient.from('user_goals').select('*').eq('user_id', currentUser.id).single();
+    // 1. Load Goals (Using viewingUserId)
+    const { data: goals } = await supabaseClient
+        .from('user_goals')
+        .select('*')
+        .eq('user_id', viewingUserId) // <--- CHANGED
+        .single();
+
     if (goals) {
         userGoals = { 
             cal: goals.target_calories, 
@@ -168,25 +188,37 @@ async function loadData() {
             c: goals.target_c, 
             f: goals.target_f 
         };
+    } else {
+        // Fallback if user has no goals set yet
+        userGoals = { cal: 2000, p: 150, c: 200, f: 60 };
     }
 
-    // A. Load Food Library
+    // A. Load Food Library (Global)
     const { data: foods } = await supabaseClient.from('custom_foods').select('*');
     if (foods) customFoods = foods;
     populateDropdown(); 
 
-    // B. Load Fuel Logs
-    const { data: fuel } = await supabaseClient.from('fuel_logs').select('*').eq('date', dayStr);
+    // B. Load Fuel Logs (Using viewingUserId)
+    const { data: fuel } = await supabaseClient
+        .from('fuel_logs')
+        .select('*')
+        .eq('user_id', viewingUserId) // <--- CHANGED
+        .eq('date', dayStr);
     if (fuel) entries = fuel;
 
-    // C. Load Training Logs
-    const { data: train } = await supabaseClient.from('training_logs').select('*').eq('date', dayStr);
+    // C. Load Training Logs (Using viewingUserId)
+    const { data: train } = await supabaseClient
+        .from('training_logs')
+        .select('*')
+        .eq('user_id', viewingUserId) // <--- CHANGED
+        .eq('date', dayStr);
     if (train) trainingLog = train;
     
-    // D. Load Body Logs
+    // D. Load Body Logs (Using viewingUserId)
     const { data: body } = await supabaseClient
         .from('body_logs')
         .select('*')
+        .eq('user_id', viewingUserId) // <--- CHANGED
         .order('date', { ascending: false })
         .limit(30);
     if (body) {
@@ -259,8 +291,7 @@ document.getElementById("add-btn").addEventListener("click", async function() {
     const multiplier = weight / referenceSize;
 
     const newEntry = {
-        user_id: currentUser.id,
-        // NEW:
+        user_id: viewingUserId, // <--- CHANGED
         date: getLocalDayStr(currentDate), 
         item_name: foodName,
         weight: weight,
@@ -463,8 +494,7 @@ window.logSet = async function(exerciseName, splitName) {
     if (!weightInput.value || !repsInput.value) return;
 
     const newSet = {
-        user_id: currentUser.id,
-        // NEW:
+        user_id: viewingUserId, // <--- CHANGED
         date: getLocalDayStr(currentDate),
         exercise: exerciseName,
         weight: weightInput.value,
@@ -587,8 +617,7 @@ logWeightBtn.addEventListener("click", async () => {
     if (!weight) return;
 
     const newLog = {
-        user_id: currentUser.id,
-        // NEW:
+        user_id: viewingUserId, // <--- CHANGED
         date: getLocalDayStr(currentDate),
         metric_type: 'weight',
         value: weight,
@@ -671,7 +700,7 @@ saveGoalsBtn.addEventListener("click", async () => {
 
     // Save to Supabase (Upsert handles Insert or Update)
     const { error } = await supabaseClient.from('user_goals').upsert({
-        user_id: currentUser.id,
+        user_id: viewingUserId, // <--- CHANGED
         target_calories: cal,
         target_p: p,
         target_c: c,
@@ -717,6 +746,66 @@ function updateLivePreview() {
 // Attach listeners
 entryName.addEventListener("change", updateLivePreview);
 entryVal.addEventListener("input", updateLivePreview);
+
+// --- COACH MODE LOGIC ---
+const coachSelect = document.getElementById("coach-selector");
+
+async function loadClientList() {
+    // Reveal the dropdown
+    coachSelect.classList.remove("hidden");
+
+    // Fetch all profiles
+    const { data: profiles } = await supabaseClient
+        .from('profiles')
+        .select('id, display_name');
+
+    if (profiles) {
+        profiles.forEach(p => {
+            // Skip showing yourself in the list (redundant)
+            if (p.id === currentUser.id) return;
+
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.innerText = p.display_name || "User";
+            coachSelect.appendChild(opt);
+        });
+    }
+
+    // Handle Switching
+    coachSelect.addEventListener("change", () => {
+        const selection = coachSelect.value;
+        
+        if (selection === "ME") {
+            viewingUserId = currentUser.id;
+            document.body.style.borderTop = "none"; 
+        } else {
+            viewingUserId = selection;
+            // Visual Hint: Green Border = God Mode Active
+            document.body.style.borderTop = "4px solid #4ade80"; 
+        }
+        
+        // Reload all data for the selected user
+        loadData();
+    });
+}
+
+// --- DAILY LOCK IN PROTOCOL ---
+function triggerLockIn() {
+    const todayStr = getLocalDayStr(new Date());
+    const lastSeen = localStorage.getItem("last_lock_in_date");
+
+    // If we haven't seen it today, SHOW IT
+    if (lastSeen !== todayStr) {
+        lockInOverlay.classList.remove("hidden");
+        
+        // Listen for the "Tap to Execute"
+        lockInOverlay.addEventListener("click", () => {
+            lockInOverlay.classList.add("hidden");
+            // Save today's date so it doesn't show again until tomorrow
+            localStorage.setItem("last_lock_in_date", todayStr);
+        }, { once: true }); // Important: Run listener only once
+    }
+}
 
 // START
 initApp();

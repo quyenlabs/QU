@@ -22,6 +22,13 @@
         </div>
     </div>
 
+    <div id="lock-in-overlay" class="hidden">
+        <div class="lock-msg">
+            <h1>🔒 LOCK IN</h1>
+            <p>TAP TO EXECUTE</p>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <div class="header-top">
@@ -31,6 +38,10 @@
                 </div>
 
                 <div class="header-controls">
+                    <select id="coach-selector" class="hidden">
+                        <option value="ME">VIEW: ME</option>
+                    </select>
+
                     <button id="logout-btn" class="logout-link">(LOGOUT)</button>
                     <div class="mode-switch">
                         <button id="mode-fuel" class="mode-btn active">FUEL</button>
