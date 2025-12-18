@@ -341,19 +341,19 @@ function renderFuelFeed() {
         const newItem = document.createElement("div");
         newItem.classList.add("entry-card");
         
-        // UPDATED HTML STRUCTURE:
-        // 1. Name is clean on top.
-        // 2. Bottom line matches the "Live Preview" format (Weight • Cal • Macros)
+        // UX UPDATE: 
+        // 1. The 'onclick' is now on the entire 'card-left' container.
         newItem.innerHTML = `
-            <div class="card-left">
+            <div class="card-left" 
+                 onclick="editEntryWeight('${entry.id}', '${entry.item_name}', ${entry.weight})"
+                 style="cursor: pointer;">
+                 
                 <span class="entry-text">${entry.item_name}</span>
                 <div class="card-stats">
                     <span>${entry.weight}${entry.unit}</span>
                     
                     <span style="color:#444; margin: 0 6px;">•</span>
-                    
                     <span style="color:#fff; font-weight:600;">${Math.round(entry.calories)} cal</span>
-                    
                     <span style="color:#444; margin: 0 6px;">•</span>
                     
                     <span class="macro-tag tag-p">${Math.round(entry.protein)}P</span>
@@ -361,6 +361,7 @@ function renderFuelFeed() {
                     <span class="macro-tag tag-f" style="margin-left:4px;">${Math.round(entry.fat)}F</span>
                 </div>
             </div>
+            
             <button class="delete-btn" onclick="deleteEntry('${entry.id}')">×</button>
         `;
         feed.prepend(newItem);
@@ -806,6 +807,55 @@ function triggerLockIn() {
         }, { once: true }); // Important: Run listener only once
     }
 }
+
+// --- EDIT FEATURE ---
+window.editEntryWeight = async function(id, foodName, currentWeight) {
+    // 1. Get the new number
+    const newWeightStr = prompt(`Update amount for ${foodName}:`, currentWeight);
+    if (!newWeightStr) return; // Cancelled
+    
+    const newWeight = Number(newWeightStr);
+    if (!newWeight || newWeight <= 0) return; // Invalid
+
+    // 2. Find the reference food to get macro ratios
+    const fullLib = getFullLibrary(); 
+    const foodStats = fullLib[foodName];
+    
+    if (!foodStats) {
+        alert("Cannot edit: Original food source not found in library.");
+        return;
+    }
+
+    // 3. Recalculate Macros
+    const referenceSize = foodStats.serving_size || foodStats.serving || 100;
+    const multiplier = newWeight / referenceSize;
+
+    const updates = {
+        weight: newWeight,
+        calories: (foodStats.cal || foodStats.calories) * multiplier,
+        protein: (foodStats.p || foodStats.protein) * multiplier,
+        carbs: (foodStats.c || foodStats.carbs) * multiplier,
+        fat: (foodStats.f || foodStats.fat) * multiplier
+    };
+
+    // 4. Optimistic UI Update
+    const index = entries.findIndex(e => e.id === id);
+    if (index !== -1) {
+        entries[index] = { ...entries[index], ...updates };
+        renderFuelFeed(); // Re-draw immediately
+    }
+
+    // 5. Save to Supabase
+    const { error } = await supabaseClient
+        .from('fuel_logs')
+        .update(updates)
+        .eq('id', id);
+
+    if (error) {
+        console.error("Update failed:", error);
+        loadData(); // Revert on error
+    }
+};
 
 // START
 initApp();
