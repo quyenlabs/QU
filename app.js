@@ -355,21 +355,54 @@ function renderFuelFeed() {
     if(document.getElementById("bar-f")) document.getElementById("bar-f").style.width = `${pctF}%`;
 }
 
-// --- 6. CORE LOGIC: TRAIN (PERSISTENCE & BUG FIX) ---
+// --- 6. CORE LOGIC: TRAIN (WITH HISTORY) ---
 
-// Helper: Remove special chars for ID safety
+// Helper: Remove special chars
 function cleanId(str) { return str.replace(/[^a-zA-Z0-9]/g, ''); }
 
-// Helper: Auto-save inputs so they survive app switching
+// Helper: Auto-save inputs
 window.saveDraft = function(type, exerciseId, value) {
     localStorage.setItem(`draft_${type}_${exerciseId}`, value);
 }
 
-window.startWorkout = function(splitName) {
+// UPDATED: Now Async to fetch history
+window.startWorkout = async function(splitName) {
     if(trainSelector) trainSelector.classList.add("hidden");
     if(trainActive) trainActive.classList.remove("hidden");
     if(activeSplitName) activeSplitName.innerText = splitName;
-    renderWorkoutPage(splitName);
+    
+    // 1. Fetch History (The Ghost of Workouts Past)
+    const historyMap = await fetchWorkoutHistory(splitName);
+    
+    // 2. Render with History data
+    renderWorkoutPage(splitName, historyMap);
+}
+
+// NEW: Fetch last known lifts for this split
+async function fetchWorkoutHistory(splitName) {
+    const exercises = WORKOUT_SPLITS[splitName];
+    const history = {};
+
+    // Fetch last 200 logs for this user, newest first
+    const { data: logs } = await supabaseClient
+        .from('training_logs')
+        .select('*')
+        .eq('user_id', viewingUserId)
+        .in('exercise_name', exercises) 
+        .order('date', { ascending: false })
+        .limit(200);
+
+    if (logs) {
+        const today = getLocalDayStr(currentDate);
+        
+        logs.forEach(log => {
+            // Only grab the first one found (most recent) that ISN'T today
+            if (!history[log.exercise_name] && log.date !== today) {
+                history[log.exercise_name] = `${log.weight}lbs × ${log.reps}`;
+            }
+        });
+    }
+    return history;
 }
 
 if(backToSplitBtn) {
@@ -379,7 +412,8 @@ if(backToSplitBtn) {
     });
 }
 
-function renderWorkoutPage(splitName) {
+// UPDATED: Now accepts historyMap
+function renderWorkoutPage(splitName, historyMap = {}) {
     if(!exerciseList) return;
     exerciseList.innerHTML = "";
     const exercises = WORKOUT_SPLITS[splitName];
@@ -387,11 +421,14 @@ function renderWorkoutPage(splitName) {
     exercises.forEach(exerciseName => {
         const safeId = cleanId(exerciseName);
         
-        // 1. Recover Drafts (Persistence Magic)
+        // Recover Drafts
         const savedWeight = localStorage.getItem(`draft_weight_${safeId}`) || "";
         const savedReps = localStorage.getItem(`draft_reps_${safeId}`) || "";
 
-        // 2. Filter today's logs
+        // Get Previous Best
+        const lastLift = historyMap[exerciseName] || "No history";
+
+        // Filter today's logs
         const todaysLogs = trainingLog.filter(t => t.exercise_name === exerciseName);
         let logsHtml = "";
         todaysLogs.forEach(log => {
@@ -405,10 +442,13 @@ function renderWorkoutPage(splitName) {
         const card = document.createElement("div");
         card.classList.add("exercise-card");
         
-        // 3. Render Inputs with "oninput" listeners to save drafts
+        // RENDER: Added the "ex-history" line below the name
         card.innerHTML = `
             <div class="ex-header">
-                <div><span class="ex-name">${exerciseName}</span></div>
+                <div>
+                    <span class="ex-name">${exerciseName}</span>
+                    <span class="ex-history" style="color:#666; font-size:0.75rem; font-family:monospace;">Last: ${lastLift}</span>
+                </div>
             </div>
             <div class="today-logs">${logsHtml}</div>
             <div class="set-input-row">
@@ -438,8 +478,6 @@ function renderWorkoutPage(splitName) {
     finishBtn.onclick = function() {
         trainActive.classList.add("hidden");
         trainSelector.classList.remove("hidden");
-        // Optional: Clear all drafts?
-        // localStorage.clear(); 
         alert("Good work.");
     };
     exerciseList.appendChild(finishBtn);
@@ -452,36 +490,33 @@ window.logSet = async function(exerciseName, splitName) {
     
     if (!wInput.value || !rInput.value) return;
 
-    // FIX 1: Ensure Numbers
     const weightVal = Number(wInput.value);
     const repsVal = Number(rInput.value);
 
     const newSet = {
         user_id: viewingUserId,
         date: getLocalDayStr(currentDate),
-        
-        // FIX 2: Correct Column Names for DB
         exercise_name: exerciseName, 
         split_name: splitName,       
-        
         weight: weightVal,
         reps: repsVal
     };
 
-    console.log("Sending Set:", newSet); // Debug log
-
     const { error } = await supabaseClient.from('training_logs').insert([newSet]);
     
     if (!error) {
-        // FIX 3: Clear the draft from storage so inputs reset
         localStorage.removeItem(`draft_weight_${safeId}`);
         localStorage.removeItem(`draft_reps_${safeId}`);
-        
         wInput.value = "";
         rInput.value = "";
 
         await loadData();
-        renderWorkoutPage(splitName);
+        // IMPORTANT: We re-fetch history here so if he navigates away and back, it's fresh
+        // But for instant re-render, we can just grab the existing history from the DOM? 
+        // Simpler: Just re-run startWorkout to refresh everything or pass empty map if lazy.
+        // Let's actually just re-fetch the history to be safe.
+        const historyMap = await fetchWorkoutHistory(splitName);
+        renderWorkoutPage(splitName, historyMap);
     } else {
         alert("Error logging set: " + error.message);
         console.error(error);
@@ -493,7 +528,8 @@ window.deleteSet = async function(id, splitName) {
         const { error } = await supabaseClient.from('training_logs').delete().eq('id', id);
         if (!error) {
             await loadData();
-            renderWorkoutPage(splitName);
+            const historyMap = await fetchWorkoutHistory(splitName);
+            renderWorkoutPage(splitName, historyMap);
         }
     }
 }
