@@ -355,6 +355,57 @@ function renderFuelFeed() {
     if(document.getElementById("bar-f")) document.getElementById("bar-f").style.width = `${pctF}%`;
 }
 
+// --- CREATOR LOGIC ---
+if(document.getElementById("save-food-btn")) {
+    document.getElementById("save-food-btn").addEventListener("click", async () => {
+        const name = document.getElementById("new-food-name").value;
+        const p = Number(document.getElementById("new-p").value);
+        const c = Number(document.getElementById("new-c").value);
+        const f = Number(document.getElementById("new-f").value);
+        const cal = (p*4) + (c*4) + (f*9);
+
+        const newFood = {
+            user_id: currentUser.id,
+            name: name,
+            unit: document.getElementById("new-unit").value,
+            serving_size: Number(document.getElementById("new-serving").value),
+            calories: cal,
+            protein: p,
+            carbs: c,
+            fat: f
+        };
+
+        const { error } = await supabaseClient.from('custom_foods').insert([newFood]);
+        if (!error) {
+            alert("Food Saved to Global DB");
+            // SAFELY CLOSE PANEL
+            if (creatorPanel) creatorPanel.classList.add("hidden");
+            loadData();
+        } else {
+            alert("Error: " + error.message);
+        }
+    });
+}
+
+// FIX: Added logging to debug the button click
+if(toggleCreatorBtn) {
+    toggleCreatorBtn.addEventListener("click", () => {
+        console.log("Button Clicked"); // Debug log
+        
+        if (!creatorPanel) {
+            console.error("ERROR: Could not find element with id='creator-form'");
+            alert("Error: Creator Form panel is missing in HTML.");
+            return;
+        }
+
+        creatorPanel.classList.toggle("hidden");
+        if(mealsPanel) mealsPanel.classList.add("hidden"); 
+        
+        // Update text
+        toggleCreatorBtn.innerText = creatorPanel.classList.contains("hidden") ? "+ New Item" : "Close";
+    });
+}
+
 // --- 6. CORE LOGIC: TRAIN (WITH HISTORY) ---
 
 // Helper: Remove special chars
